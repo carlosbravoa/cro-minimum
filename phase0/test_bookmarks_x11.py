@@ -86,7 +86,8 @@ def main():
         [f"{out}/lrb_coordinator", f"--browser={out}/lrb", "--verbose",
          f"--profiles-dir={profiles}", f"--socket={work}/c.sock",
          "--adblock-setting=off", base + "a", "--"] +
-        [a for a in LEAN_ARGS if not a.startswith("--ozone-platform")],
+        [a for a in LEAN_ARGS if not a.startswith("--ozone-platform")]
+        + ["--ozone-platform=x11"],
         stdout=log, stderr=subprocess.STDOUT, env=env, start_new_session=True)
     try:
         new = wait_for(lambda: [w for w, t in x11.windows()

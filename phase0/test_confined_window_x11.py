@@ -64,7 +64,8 @@ def main():
         [f"{out}/lrb_coordinator", f"--browser={out}/lrb",
          f"--profiles-dir={profiles}", f"--socket={work}/c.sock",
          "--adblock-setting=off", url, "--"] + [a for a in LEAN_ARGS
-                                               if not a.startswith("--ozone-platform")],
+                                               if not a.startswith("--ozone-platform")]
+        + ["--ozone-platform=x11"],
         stdout=log, stderr=subprocess.STDOUT, env=env, start_new_session=True)
     try:
         site = wait_for(lambda: "127.0.0.1" in instances(profiles), 30)

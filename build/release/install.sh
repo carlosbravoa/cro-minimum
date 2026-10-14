@@ -44,6 +44,7 @@ Terminal=false
 Categories=Network;WebBrowser;
 MimeType=x-scheme-handler/http;x-scheme-handler/https;
 StartupNotify=true
+StartupWMClass=lrb
 EOF
 command -v update-desktop-database >/dev/null &&
   update-desktop-database -q "$apps" 2>/dev/null || true

@@ -407,6 +407,19 @@ bool ParseOptions(int argc, char** argv, Options& options) {
       return false;
     }
   }
+  // Native Wayland windows on a Wayland desktop (decided 2026-10-14):
+  // through Xwayland, without GTK (use_gtk = false), Chromium's X11 backend
+  // composes no dead keys and reaches no input method, so á, ü and the
+  // like couldn't be typed. Ozone Wayland composes with xkbcommon and talks
+  // to input methods itself. An --ozone-platform after "--" still decides
+  // (the X11 tests ask for x11).
+  bool platform_given = false;
+  for (const std::string& arg : options.browser_args) {
+    platform_given = platform_given || arg.starts_with("--ozone-platform=");
+  }
+  if (!platform_given && !Getenv("WAYLAND_DISPLAY").empty()) {
+    options.browser_args.emplace_back("--ozone-platform=wayland");
+  }
   if (options.adblock_setting.empty()) {
     options.adblock_setting = AdblockLevel();
   }
