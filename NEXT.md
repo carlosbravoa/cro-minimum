@@ -11,6 +11,7 @@ through the compiler, so the build is its first check.
 | `d0ec635` | Cookies kept across restarts: each site's cookies in a `Cookies` database in its profile (content_shell's store was in memory only, so every site was signed out at each start; reported with Facebook). Unencrypted: Chromium 155 hits `NOTREACHED` without a key provider | `lrb/browser/lrb_content_browser_client.cc`, `phase0/test_cookies.py`, `phase0/run_tests.sh` |
 | `553108b` | The HTTP cache on disk (`Cache`, 32 MB) instead of in memory, where it held up to 2% of RAM per site (50 MB from 2.5 GB up) and started empty each time; HSTS remembered (`TransportSecurity`). `test_cookies.py` becomes `test_persistence.py` and checks the cache too | `lrb/browser/lrb_content_browser_client.cc`, `phase0/test_persistence.py`, `phase0/run_tests.sh` |
 | `75b2c46` | Native Wayland windows on a Wayland desktop (the coordinator adds `--ozone-platform=wayland` when `WAYLAND_DISPLAY` is set and no platform was given): through Xwayland without GTK, dead keys and input methods didn't work, so `á`, `ü` couldn't be typed. Confirmed by hand on alpha.4 with `low-ram-browser -- --ozone-platform=wayland`. The X11 tests started through the coordinator now ask for x11; the desktop entry gets `StartupWMClass=lrb` | `lrb/coordinator/coordinator.cc`, `phase0/test_confined_window_x11.py`, `phase0/test_bookmarks_x11.py`, `build/release/install.sh` |
+| `158233b` | Links for other apps (`mailto:`, `tel:`, Zoom and Teams links, `magnet:`): the window asks "Open ... in another app?", then the coordinator runs `xdg-open` (`open-app`). The coordinator takes only links for apps (never http(s), files, `data:`, `javascript:`; `IsExternalAppUrl` in `rules.h`, with unit tests) and one every 2 s per instance, since a compromised instance can skip the question. The page itself may ask without a click (Zoom's join page does); frames inside it need one; only the tab on screen asks. `test_open_app.py` checks the coordinator with a stand-in instance (passes with the new coordinator built by g++, fails on alpha.4's); the rules and the coordinator compile cleanly with g++ `-Wall -Wextra` | `lrb/browser/external_links.{h,cc}`, `lrb/browser/lrb_content_browser_client.{h,cc}`, `lrb/coordinator/{coordinator.cc,rules.h,rules.cc,rules_unittest.cc}`, `lrb/BUILD.gn`, `phase0/test_open_app.py`, `phase0/run_tests.sh`, README, `docs/design.md` |
 
 Check before releasing:
 
@@ -33,7 +34,14 @@ Check before releasing:
    the window icon (the site's favicon was set through X11); the file
    picker over its window; GPU rendering smoothness (1-8 fps under
    Xwayland, see Open). On a Raspberry Pi with labwc too.
-5. `python3 -m lrb_harness run --configs lrb-lean-pressure` against
+5. Links for other apps, by hand: a `mailto:` link on a page asks, and
+   Open starts the mail app with the address; Cancel and Esc do nothing;
+   Enter right after the click lands on Cancel. A Zoom join page
+   (`zoom.us/j/<id>`) asks without a click. A `tel:` link in a background
+   tab asks nothing. A page that keeps opening `mailto:` shows one
+   question, not a stack. With no app for a scheme, xdg-open fails
+   quietly: maybe say so in the window. `lrb_unittests` passes.
+6. `python3 -m lrb_harness run --configs lrb-lean-pressure` against
    alpha.4: unreclaimable memory should drop on sites with many cached
    resources (the cache left RAM); the title timer and the databases
    shouldn't cost anything measurable. Also a window on Wayland against
@@ -43,31 +51,28 @@ Check before releasing:
 ## Missing for everyday use
 
 Found 2026-10-14 by looking for what content_shell leaves out and lrb
-never added back. In order (dead keys, the first, is in the next build):
+never added back. In order (dead keys and links for other apps, the
+first two, are in the next build):
 
-1. **Links to other apps do nothing**: `mailto:`, `tel:`, Zoom and Teams
-   meeting links, `magnet:`. content_shell ignores external protocols.
-   Hand them to the desktop's default app (the OpenURI portal, through the
-   coordinator, which already shows the file picker), after asking.
-2. **No security updates.** Every Chromium security release (about every
+1. **No security updates.** Every Chromium security release (about every
    4 weeks, plus emergency fixes) reaches users only by reinstalling. At
    least: lrb notices a newer release and says so.
-3. **Certificate errors are a dead end**: an error page, no explanation,
+2. **Certificate errors are a dead end**: an error page, no explanation,
    no captive-portal detection, so hotel and airport Wi-Fi sign-in pages
    can't be reached when they intercept HTTPS.
-4. **No saved passwords.** Signing in is typed every time (less often
+3. **No saved passwords.** Signing in is typed every time (less often
    with cookies kept). Chrome's password manager is large; a small one
    (per site, in the site's profile, filled on request) is real work.
-5. **No form autofill** (names, addresses).
-6. **No spellcheck.** A few MB per dictionary: off by default, or one
+4. **No form autofill** (names, addresses).
+5. **No spellcheck.** A few MB per dictionary: off by default, or one
    language, and measured.
-7. **No Safe Browsing** (phishing and malware warnings). The blocking
+6. **No Safe Browsing** (phishing and malware warnings). The blocking
    lists catch some malware domains, not phishing pages.
-8. **Certificates you imported yourself aren't seen**: the site's process
+7. **Certificates you imported yourself aren't seen**: the site's process
    can't open `~/.pki/nssdb` under confinement ("Error initializing NSS
    with a persistent database"), so client certificates (some company and
    government sign-ins) and company certificate authorities don't work.
-9. Smaller: no color picker (`<input type=color>`), no translation, no
+8. Smaller: no color picker (`<input type=color>`), no translation, no
    screen-reader support (no ATK without GTK).
 
 Decided, not missing (README): extensions, DRM (Netflix, Spotify), the
