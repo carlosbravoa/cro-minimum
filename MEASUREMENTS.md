@@ -77,6 +77,38 @@ content_shell for the same page (Chromium snapshot `chrome-default` against
 | Discarding a background window | Frees 81 of a page's 96 MB (84%), keeping the window and its history; Chromium's own `WebContents::Discard()` kept 33 MB more | `python3 -m lrb_harness session --lrb-dir ../dist/x64/content-shell` |
 | Build configuration (`build/args.gn`) | About 7 MB per browser, almost all file-backed | `cs-*` (snapshot) against `lrb-*` (our build) |
 
+## Against Chromium, as installed
+
+The README's table: lrb 0.1.0-alpha.4 (GPU rendering and content blocking
+on, the user's settings) against the Chromium snap of the same release
+(155.0.8059.39), each started from its own launcher with a window on the
+desktop, a fresh profile per run, no memory limit. Every process of each
+browser, 60 s after opening the page. Intel i7-8700, 15 GB, Ubuntu GNOME
+(Wayland), 2026-10-14, medians of 3 runs, MB:
+
+| page | Chromium | lrb | saved | unreclaimable: Chromium | lrb |
+|---|---:|---:|---:|---:|---:|
+| Wikipedia | 497 | 259 | 48% | 231 | 74 |
+| GitHub | 541 | 315 | 42% | 267 | 116 |
+| BBC News | 710 | 285 | 60% | 427 | 88 |
+| Reddit | 509 | 324 | 36% | 240 | 121 |
+
+YouTube is missing: by then Google answered this machine's address with
+its "unusual traffic" page, which the script leaves out.
+
+```sh
+tools/compare_chromium.py <out-dir>    # from the desktop, about 35 min
+```
+
+Stock Chromium 155 can't run single-process: `--single-process` dies at
+startup (SIGTRAP) whatever the other flags. Its leanest working form, in
+the harness, is `chrome-fewproc` (one renderer, GPU and network in the
+browser process) and `chrome-lean` (that plus every runtime flag lrb's
+defaults use); lrb stays 35-75% below `chrome-lean` in unreclaimable
+memory. The snap's binary, run outside the snap
+(`--binary chrome=/snap/chromium/current/usr/lib/chromium-browser/chrome`),
+needs `--extra-args=--gtk-version=3` with `--display native`.
+
 ## Raspberry Pi 3 Model B+ (1 GB)
 
 `tools/device_test.sh` on the v0.1.0-alpha.1 arm64 build: Debian 13 64-bit,

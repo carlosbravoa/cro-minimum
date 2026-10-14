@@ -135,6 +135,20 @@ CONFIGS["lrb-lean-dark"] = dict(
 # lrb-lean-* measured before 2026-10-05.
 CONFIGS["lrb-lean-trials"] = dict(_LEAN_WITH_TRIALS)
 
+# Is lrb worth it over Chromium itself, tuned as far as flags go? Chromium
+# 155 dies at startup (SIGTRAP) with --single-process under any flags, so
+# its leanest working form is the fewest processes: one renderer, GPU and
+# network in the browser process. chrome-lean adds every other runtime flag
+# lrb's defaults use; what remains between it and lrb-lean-pressure is
+# single-process, lrb's build and its code.
+CONFIGS["chrome-fewproc"] = dict(CONFIGS["cs-fewproc"], binary="chrome")
+CONFIGS["chrome-lean"] = dict(
+    CONFIGS["cs-fewproc"], binary="chrome",
+    args=CONFIGS["cs-fewproc"]["args"] + LOW_MEMORY + [
+        "--disable-gpu", "--disable-field-trial-config"],
+    disable_features=DISABLED_FEATURES_FEWPROC + DISABLED_FEATURES_LOWMEM,
+    js_flags=[JS_SIZE])
+
 # Another build of ours (an earlier Chromium commit, before a rebase) under
 # the same flags: base-<x> for every lrb-<x>, with --binary lrb-base=<path>.
 # Interleaved with lrb-* in one sweep, live-site drift hits both alike.

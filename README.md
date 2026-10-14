@@ -59,6 +59,28 @@ Chromium's per-renderer sandbox; see [Security](#security).
 
 Details and the comparison with Chrome: [docs/design.md](docs/design.md#security-model).
 
+## Against Chromium
+
+lrb 0.1.0-alpha.4 against the Chromium snap of the same release
+(155.0.8059.39), both as installed: started from their own launchers with
+a window on the desktop, a fresh profile, no memory limit. lrb with GPU
+rendering and content blocking on; Chromium with `--no-first-run`, so it
+opens no welcome tab. Every process each browser runs, 60 s after opening
+one page, medians of 3 runs, MB (Intel i7-8700, 15 GB, Ubuntu GNOME):
+
+| page | Chromium | lrb | saved |
+|---|---:|---:|---:|
+| Wikipedia | 497 | 259 | 48% |
+| GitHub | 541 | 315 | 42% |
+| BBC News | 710 | 285 | 60% |
+| Reddit | 509 | 324 | 36% |
+
+Total PSS, including the program's own code. Counting only memory that
+can't be paged out, Chromium held 231-427 MB and lrb 74-121 MB. Chromium
+ran 10 processes per page (24 on BBC News); lrb ran 2, its coordinator
+(1 MB) and the site. To reproduce: `tools/compare_chromium.py`
+([MEASUREMENTS.md](MEASUREMENTS.md#against-chromium-as-installed)).
+
 ## On a Raspberry Pi 3 (1 GB)
 
 A Raspberry Pi 3 Model B+ (905 MB usable, 905 MB zram, Debian 13 64-bit)
