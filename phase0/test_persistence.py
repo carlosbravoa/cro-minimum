@@ -1,11 +1,14 @@
-"""Check that a site's cookies outlive its process: signed in stays signed in.
+"""Check that a site's network state outlives its process: cookies (signed
+in stays signed in) and the HTTP cache.
 
-  python3 test_cookies.py <path to lrb>
+  python3 test_persistence.py <path to lrb>
 
-content_shell kept cookies in memory only, so every start signed every site
-out. A local page sets a persistent cookie and a session cookie; lrb closes
-cleanly and starts again on the same profile. The persistent one must be
-back, the session one gone (as in Chrome without session restore).
+content_shell kept both in memory only, so every start signed every site
+out and fetched everything again. A local page sets a persistent cookie and
+a session cookie and loads a stylesheet cacheable for an hour; lrb closes
+cleanly and starts again on the same profile. The persistent cookie must be
+back, the session one gone (as in Chrome without session restore), and the
+stylesheet must come from the disk cache, not the server.
 """
 
 import http.server
@@ -19,15 +22,26 @@ from lrb_harness import cdp as cdplib
 from lrb_harness import run as runlib
 
 
+STYLE_REQUESTS = []
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
+        if self.path == "/style.css":
+            STYLE_REQUESTS.append(self.path)
+            self.send_header("Content-Type", "text/css")
+            self.send_header("Cache-Control", "max-age=3600")
+            self.end_headers()
+            self.wfile.write(b"body { color: #333 }")
+            return
         if self.path == "/set":
             self.send_header("Set-Cookie", "kept=1; Max-Age=3600; Path=/")
             self.send_header("Set-Cookie", "session=1; Path=/")
         self.send_header("Content-Type", "text/html")
         self.end_headers()
-        self.wfile.write(b"<title>cookies</title>cookies")
+        self.wfile.write(b'<title>persistence</title>'
+                         b'<link rel="stylesheet" href="/style.css">persistence')
 
     def log_message(self, *args):
         pass
@@ -78,9 +92,16 @@ def main():
         check("the page set both cookies", "kept=1" in first and "session=1" in first, first)
         check("a cookie database in the profile",
               os.path.exists(os.path.join(work, "p", "Cookies")))
+        cache = os.path.join(work, "p", "Cache")
+        check("an HTTP cache on disk in the profile",
+              os.path.isdir(cache) and any(files for _, _, files in os.walk(cache)))
+        fetched = len(STYLE_REQUESTS)
         second = visit(base + "/", 2)
         check("the persistent cookie is back after a restart", "kept=1" in second, second)
         check("the session cookie is not", "session=1" not in second, second)
+        check("the cached stylesheet comes from the disk cache after a restart",
+              fetched == 1 and len(STYLE_REQUESTS) == 1,
+              f"fetched {fetched} time(s), then {len(STYLE_REQUESTS) - fetched} more")
     finally:
         server.shutdown()
     print(f"{failures} failure(s)")

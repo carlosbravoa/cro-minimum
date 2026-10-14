@@ -620,23 +620,34 @@ void LrbContentBrowserClient::ConfigureNetworkContextParams(
   network_context_params->enable_zstd = true;
   network_context_params->device_bound_sessions_enabled =
       base::FeatureList::IsEnabled(net::features::kDeviceBoundSessions);
-  // Cookies on disk, in the site's profile (content_shell kept them in
-  // memory only: every site was signed out at each start). Session
-  // cookies still end with the process, as they do in Chrome without
-  // session restore.
+  // Network state on disk, in the site's profile: content_shell kept it
+  // in memory only.
   if (in_memory || !relative_partition_path.empty()) {
     return;
   }
   network_context_params->file_paths =
       network::mojom::NetworkContextFilePaths::New();
   network_context_params->file_paths->data_directory = context->GetPath();
+  // Cookies: in memory, every site was signed out at each start. Session
+  // cookies still end with the process, as in Chrome without session
+  // restore. Unencrypted: Chromium 155 has no fallback without a key
+  // provider (NOTREACHED), and on Linux without a keyring Chrome's key is a
+  // fixed, public one anyway. The profile is the user's alone (0700) and
+  // other sites' confined processes can't reach it.
   network_context_params->file_paths->cookie_database_name =
       base::FilePath(FILE_PATH_LITERAL("Cookies"));
-  // Unencrypted: Chromium 155 has no fallback without a key provider
-  // (NOTREACHED), and on Linux without a keyring Chrome's key is a fixed,
-  // public one anyway. The profile is the user's alone (0700) and other
-  // sites' confined processes can't reach it.
   network_context_params->enable_encrypted_cookies = false;
+  // The HTTP cache: in memory it held up to 2% of RAM per site (50 MB from
+  // 2.5 GB up), anonymous memory the kernel can't drop, and started empty
+  // each time. 32 MB holds a site's scripts, styles and images; small, for
+  // SD cards' sake.
+  network_context_params->file_paths->http_cache_directory =
+      context->GetPath().Append(FILE_PATH_LITERAL("Cache"));
+  network_context_params->http_cache_max_size = 32 * 1024 * 1024;
+  // HSTS learnt from sites ("HTTPS only from now on"): remembered, so the
+  // first request after a restart can't be downgraded to plain HTTP.
+  network_context_params->file_paths->transport_security_persister_file_name =
+      base::FilePath(FILE_PATH_LITERAL("TransportSecurity"));
 }
 
 std::vector<base::FilePath>
