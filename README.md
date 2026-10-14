@@ -56,6 +56,11 @@ Chromium's per-renderer sandbox; see [Security](#security).
   and given to any site's window that asks (for the address bar's
   suggestions and the bookmarks menu): a compromised site could read that
   list, though not other sites' pages, cookies or data.
+- **Links for other apps** (`mailto:`, `tel:`, meeting links) open only
+  after you say yes in the window, but that question is asked in the
+  site's own process: a compromised site could open such links without
+  asking. The coordinator still refuses anything but links for apps
+  (never web pages or files) and allows one every 2 seconds.
 
 Details and the comparison with Chrome: [docs/design.md](docs/design.md#security-model).
 
@@ -141,6 +146,9 @@ and without the GPU. More numbers, and how to reproduce them:
   window can ask for them, so a compromised site could learn which sites
   you visit and bookmarked (not what you did there). A site can only add or
   remove bookmarks of its own pages.
+- **Links for other apps:** `mailto:`, `tel:`, Zoom and Teams meeting
+  links and the like open in your desktop's app for them, after you say
+  yes in the window.
 - **Print to PDF** (Ctrl+P, the menu, or the page's own Print button): the
   page as a PDF saved where you choose; print it from your PDF viewer.
   There's no print dialog or preview: Chrome's costs tens of MB.

@@ -40,6 +40,8 @@ executable("lrb") {
     "browser/lrb_browser_main_parts.h",
     "browser/download_manager_delegate.cc",
     "browser/download_manager_delegate.h",
+    "browser/external_links.cc",
+    "browser/external_links.h",
     "browser/favicon.cc",
     "browser/favicon.h",
     "browser/list_updater.cc",

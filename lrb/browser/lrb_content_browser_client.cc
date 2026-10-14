@@ -42,6 +42,7 @@
 #include "lrb/browser/bookmarks.h"
 #include "lrb/browser/coordinator_client.h"
 #include "lrb/browser/dark_pages.h"
+#include "lrb/browser/external_links.h"
 #include "lrb/browser/devtools_manager_delegate.h"
 #include "lrb/browser/list_updater.h"
 #include "lrb/browser/lrb_browser_context.h"
@@ -648,6 +649,30 @@ void LrbContentBrowserClient::ConfigureNetworkContextParams(
   // first request after a restart can't be downgraded to plain HTTP.
   network_context_params->file_paths->transport_security_persister_file_name =
       base::FilePath(FILE_PATH_LITERAL("TransportSecurity"));
+}
+
+bool LrbContentBrowserClient::HandleExternalProtocol(
+    const GURL& url,
+    base::RepeatingCallback<content::WebContents*()> web_contents_getter,
+    content::FrameTreeNodeId frame_tree_node_id,
+    content::NavigationUIData* navigation_data,
+    bool is_primary_main_frame,
+    bool is_in_fenced_frame_tree,
+    network::mojom::WebSandboxFlags sandbox_flags,
+    ui::PageTransition page_transition,
+    bool has_user_gesture,
+    const std::optional<url::Origin>& initiating_origin,
+    content::RenderFrameHost* initiator_document,
+    const net::IsolationInfo& isolation_info,
+    mojo::PendingRemote<network::mojom::URLLoaderFactory>* out_factory) {
+  if (content::WebContents* contents = web_contents_getter.Run()) {
+    AskToOpenInApp(contents, url, has_user_gesture,
+                   is_primary_main_frame && !is_in_fenced_frame_tree &&
+                       sandbox_flags == network::mojom::WebSandboxFlags::kNone);
+  }
+  // Cancelled without an error page: the question in the window is all
+  // the page shows.
+  return true;
 }
 
 std::vector<base::FilePath>

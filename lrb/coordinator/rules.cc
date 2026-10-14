@@ -4,6 +4,8 @@
 
 #include "lrb/coordinator/rules.h"
 
+#include <ctype.h>
+
 #include <array>
 
 namespace lrb::coordinator {
@@ -50,6 +52,53 @@ bool IsAcceptableUrl(std::string_view url) {
     }
   }
   return !HostOf(url).empty();
+}
+
+std::string ExternalAppScheme(std::string_view url) {
+  constexpr size_t kMaxExternalUrlLength = 4096;
+  // The browser's own schemes, and ones that read or run local things.
+  constexpr std::array<std::string_view, 20> kNotForApps = {
+      "http",       "https",       "ws",
+      "wss",        "ftp",         "file",
+      "data",       "javascript",  "vbscript",
+      "blob",       "filesystem",  "about",
+      "chrome",     "chrome-untrusted", "chrome-extension",
+      "devtools",   "view-source", "content",
+      "intent",     "isolated-app"};
+  if (url.size() > kMaxExternalUrlLength) {
+    return std::string();
+  }
+  const size_t colon = url.find(':');
+  if (colon == std::string_view::npos || colon == 0 || colon > 32 ||
+      colon + 1 == url.size()) {
+    return std::string();
+  }
+  std::string scheme;
+  for (size_t i = 0; i < colon; ++i) {
+    const auto c = static_cast<unsigned char>(url[i]);
+    const bool letter = isalpha(c);
+    if (!letter && (i == 0 || !(isdigit(c) || c == '+' || c == '-' ||
+                                c == '.'))) {
+      return std::string();
+    }
+    scheme += static_cast<char>(tolower(c));
+  }
+  for (std::string_view refused : kNotForApps) {
+    if (scheme == refused) {
+      return std::string();
+    }
+  }
+  for (char c : url) {
+    const auto u = static_cast<unsigned char>(c);
+    if (u <= 0x20 || u == 0x7f) {
+      return std::string();
+    }
+  }
+  return scheme;
+}
+
+bool IsExternalAppUrl(std::string_view url) {
+  return !ExternalAppScheme(url).empty();
 }
 
 std::string HostOf(std::string_view url) {

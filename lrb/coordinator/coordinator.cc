@@ -41,6 +41,11 @@
 //                                                 window the site left
 //                            bookmarks and address-bar suggestions:
 //                            lrb/coordinator/bookmarks.h
+//                            "open-app <url>"     a link for another app
+//                                                 (mailto:, tel:, ...; percent-
+//                                                 encoded), the user agreed:
+//                                                 xdg-open, at most one every
+//                                                 2 s per instance
 //   launcher → coordinator   "launch <url>"       open url, site unknown yet
 //   coordinator → instance   "show <url> [bounds=..] [back=..]"
 //                                                 url is on your site
@@ -201,6 +206,9 @@ struct Client {
   // Live tabs not shown in their window (the instance reports them): what
   // can sleep in the instance in use before anything closes.
   int background_tabs = 0;
+  // Its last link handed to another app (open-app): a compromised instance
+  // can skip the user's question, so the coordinator spaces them out.
+  std::optional<Clock::time_point> last_app_link;
 };
 
 std::string DirName(const std::string& path) {
@@ -635,6 +643,36 @@ class Coordinator {
     }
   }
 
+  // A link for another app (mailto:, tel:, zoommtg:, ...) to the desktop's
+  // handler. The instance asked the user first; here only what can't be
+  // left to an instance: the link is one for an app (never http(s), files,
+  // data: or javascript:; rules.h), the instance is one this coordinator
+  // started, and links come at most one every 2 s.
+  void OpenInApp(Client& client, const std::string& url) {
+    const std::string scheme = ExternalAppScheme(url);
+    if (scheme.empty() || client.profile.empty()) {
+      Log("refused open-app from %s",
+          client.site.empty() ? "an instance without a site"
+                              : client.site.c_str());
+      return;
+    }
+    const Clock::time_point now = Clock::now();
+    if (client.last_app_link &&
+        now - *client.last_app_link < std::chrono::seconds(2)) {
+      Log("refused open-app from %s: too soon after the last",
+          client.site.c_str());
+      return;
+    }
+    client.last_app_link = now;
+    Log("opening a %s: link from %s in its app", scheme.c_str(),
+        client.site.c_str());
+    if (fork() == 0) {
+      setsid();
+      execlp("xdg-open", "xdg-open", url.c_str(), nullptr);
+      _exit(127);
+    }
+  }
+
   void Drop(int fd) {
     broker_.Forget(fd);
     close(fd);
@@ -653,6 +691,8 @@ class Coordinator {
     }
     if (command == "open-settings") {
       OpenSettings();
+    } else if (command == "open-app") {
+      OpenInApp(client, FileBroker::Decode(args));
     } else if (command.starts_with("pick-") || command.starts_with("save-") ||
                command == "show-saved") {
       broker_.Handle(client.fd, client.profile, command, args);
@@ -1373,7 +1413,7 @@ class Coordinator {
       }
       auto profile = child_profiles_.find(pid);
       if (profile == child_profiles_.end()) {
-        continue;  // not ours to count (the file manager for show-saved)
+        continue;  // not ours to count (xdg-open: show-saved, open-app)
       }
       const std::string rw_dir = std::move(profile->second);
       child_profiles_.erase(profile);

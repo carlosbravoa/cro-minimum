@@ -173,6 +173,23 @@ class LrbContentBrowserClient : public content::ContentBrowserClient {
       bool is_integration_test) override;
   void CreateThrottlesForNavigation(
       content::NavigationThrottleRegistry& registry) override;
+  // Links for other apps (mailto:, tel:, ...): asked about in the window,
+  // then opened by the desktop (external_links.h).
+  bool HandleExternalProtocol(
+      const GURL& url,
+      base::RepeatingCallback<content::WebContents*()> web_contents_getter,
+      content::FrameTreeNodeId frame_tree_node_id,
+      content::NavigationUIData* navigation_data,
+      bool is_primary_main_frame,
+      bool is_in_fenced_frame_tree,
+      network::mojom::WebSandboxFlags sandbox_flags,
+      ui::PageTransition page_transition,
+      bool has_user_gesture,
+      const std::optional<url::Origin>& initiating_origin,
+      content::RenderFrameHost* initiator_document,
+      const net::IsolationInfo& isolation_info,
+      mojo::PendingRemote<network::mojom::URLLoaderFactory>* out_factory)
+      override;
   void WillCreateURLLoaderFactory(
       content::BrowserContext* browser_context,
       content::RenderFrameHost* frame,

@@ -51,6 +51,33 @@ TEST(CoordinatorRules, HostOf) {
   EXPECT_EQ(HostOf("https://example.com?q"), "example.com");
 }
 
+TEST(CoordinatorRules, ExternalAppUrls) {
+  EXPECT_EQ(ExternalAppScheme("mailto:someone@example.com"), "mailto");
+  EXPECT_EQ(ExternalAppScheme("MAILTO:someone@example.com"), "mailto");
+  EXPECT_EQ(ExternalAppScheme("tel:+56912345678"), "tel");
+  EXPECT_EQ(ExternalAppScheme("zoommtg://zoom.us/join?confno=1"), "zoommtg");
+  EXPECT_EQ(ExternalAppScheme("ms-teams:/l/meetup-join/x"), "ms-teams");
+  EXPECT_EQ(ExternalAppScheme("web+app:x"), "web+app");
+  EXPECT_TRUE(IsExternalAppUrl("magnet:?xt=urn:btih:abc"));
+}
+
+TEST(CoordinatorRules, NotExternalAppUrls) {
+  EXPECT_FALSE(IsExternalAppUrl("https://example.com/"));
+  EXPECT_FALSE(IsExternalAppUrl("HTTP://example.com/"));
+  EXPECT_FALSE(IsExternalAppUrl("file:///etc/passwd"));
+  EXPECT_FALSE(IsExternalAppUrl("javascript:alert(1)"));
+  EXPECT_FALSE(IsExternalAppUrl("data:text/html,x"));
+  EXPECT_FALSE(IsExternalAppUrl("chrome://settings"));
+  EXPECT_FALSE(IsExternalAppUrl("mailto:"));               // nothing after
+  EXPECT_FALSE(IsExternalAppUrl(":x"));                    // no scheme
+  EXPECT_FALSE(IsExternalAppUrl("1tel:123"));              // starts with digit
+  EXPECT_FALSE(IsExternalAppUrl("-x:y"));                  // an option for xdg-open
+  EXPECT_FALSE(IsExternalAppUrl("mailto:a b"));            // whitespace
+  EXPECT_FALSE(IsExternalAppUrl("mailto:a\nopen-app x"));  // control
+  EXPECT_FALSE(IsExternalAppUrl("noscheme"));
+  EXPECT_FALSE(IsExternalAppUrl("mailto:" + std::string(4096, 'a')));
+}
+
 TEST(CoordinatorRules, UrlBelongsToSite) {
   EXPECT_TRUE(UrlBelongsToSite("https://bank.com/login", "bank.com"));
   EXPECT_TRUE(UrlBelongsToSite("https://www.bank.com/", "bank.com"));

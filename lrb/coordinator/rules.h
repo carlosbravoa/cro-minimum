@@ -23,6 +23,18 @@ bool IsValidSite(std::string_view site);
 // An http(s) URL with no whitespace or control characters, at most 8 KiB.
 bool IsAcceptableUrl(std::string_view url);
 
+// A link for another app, to hand to the desktop (xdg-open): mailto:,
+// tel:, zoommtg:, magnet: and the like. A scheme of a letter then letters,
+// digits, '+', '-' or '.', a ':', and something after it; no whitespace or
+// control characters; at most 4 KiB. Never a scheme the browser handles
+// itself or one that reaches files: http(s), file, data, javascript, blob,
+// about, chrome, ... (ExternalAppScheme lists them).
+bool IsExternalAppUrl(std::string_view url);
+
+// The lowercased scheme of an external app link ("mailto"), or empty if
+// `url` isn't one.
+std::string ExternalAppScheme(std::string_view url);
+
 // The lowercased host of an http(s) URL, without userinfo or port; empty if
 // there is none. IPv6 literals are returned with their brackets.
 std::string HostOf(std::string_view url);
