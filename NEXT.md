@@ -16,6 +16,7 @@ through the compiler, so the build is its first check.
 | `50ba59a` | Certificate errors: the window says what's wrong (expired or a wrong clock, another site's, an untrusted authority, revoked, weak) with Back (focused) and Continue anyway, only Back on HSTS sites; a probe (`generate_204`, as Chrome's) first, and on a network that intercepts traffic "Sign in to Wi-Fi" instead. A Continue is remembered in memory for the site's process (`LrbSslHostState`, content_shell had none), so the page's other requests to the host pass. Frames and other hosts' requests are refused without asking. `test_certificate_error_x11.py` (self-signed local HTTPS; fails on alpha.4, as it should) | `lrb/browser/certificate_errors.{h,cc}`, `lrb/browser/ssl_host_state.{h,cc}`, `lrb/browser/lrb_browser_context.{h,cc}`, `lrb/browser/lrb_content_browser_client.{h,cc}`, `lrb/BUILD.gn`, `phase0/test_certificate_error_x11.py`, `phase0/run_tests.sh`, README |
 | `88ffb93` | Keyring back end for passwords and autofill: `lrb_keyring` (Secret Service through libsecret loaded at run time, Chromium's vendored headers; secrets only on stdin/stdout) and the coordinator's `KeyringBroker` (`pw-*`, `af-*`): passwords only of the instance's own site (from its profile) for origins on it, autofill one record for every site. `test_keyring_broker.py` passes with a stand-in and with the real helper against a throwaway GNOME keyring | `lrb/coordinator/keyring{,_broker}.{h,cc}`, `lrb/coordinator/coordinator.cc`, `lrb/BUILD.gn`, `build/build.sh`, `build/package_release.sh`, `phase0/test_keyring_broker.py` |
 | `c3d6ca5` | Saved passwords and autofill in pages: `lrb/common/forms.mojom`; the page side (`lrb/renderer/forms.{h,cc}`: sign-in and detail fields by autocomplete tokens, reported on submit or when the page leaves by itself, filled with `SetAutofillValue` after a yes) and the window's questions (`lrb/browser/forms.{h,cc}`, `lrb/browser/keyring.{h,cc}`): save or update, fill in (several accounts: which, in the row's text field), remember details, fill in details. Every value capped to fit the coordinator's 9000-byte lines | `lrb/common/forms.mojom`, `lrb/renderer/forms.{h,cc}`, `lrb/browser/forms.{h,cc}`, `lrb/browser/keyring.{h,cc}`, `lrb/browser/lrb_content_browser_client.cc`, `lrb/renderer/lrb_content_renderer_client.cc`, `lrb/BUILD.gn`, README, `docs/design.md` |
+| `bd647bc` | Phishing and malware warnings (in place of Safe Browsing): malware-filter's phishing and URLhaus lists and uBlock Origin's badware, compiled by the updater (`--lrb-adblock-setting=safety`) into `safety.adb`, apart from the ad lists; bare hostnames become `\|\|host^$all`. A listed page, redirect or download is held before its request (`SafetyThrottle`): Back (focused) or Continue anyway, remembered per host until the instance exits. The coordinator refreshes the file once when it starts, if over an hour old, after the filter lists, never while it runs. 0.85 MB private per instance, measured with the pinned adblock-rust outside Chromium. `test_safety_lists.py` (coordinator, stand-in) and `test_confine.py` (the file readable, not writable) pass with the g++ coordinator; `test_safety_warning_x11.py` is for the build | `lrb/adblock/lib.rs`, `lrb/common/{safety_list,content_blocker}.{h,cc}`, `lrb/common/lrb_switches.h`, `lrb/browser/safety_throttle.{h,cc}`, `lrb/browser/list_updater.{h,cc}`, `lrb/browser/lrb_browser_main_parts.cc`, `lrb/browser/lrb_content_browser_client.cc`, `lrb/app/lrb_main_delegate.cc`, `lrb/coordinator/coordinator.cc`, `lrb/BUILD.gn`, `phase0/` (tests get `--safety-lists=off`), README, `docs/design.md`, THIRD_PARTY.md |
 
 Check before releasing:
 
@@ -73,7 +74,15 @@ Check before releasing:
    (autocomplete tokens): submitting it asks "Remember your name, email
    and address ...?"; another site's form then offers "Fill in your saved
    ...". Fields already typed in aren't overwritten.
-10. `python3 -m lrb_harness run --configs lrb-lean-pressure` against
+10. Phishing and malware warnings, by hand: the first start fetches the
+   lists (`updating safety lists` in the coordinator's log, `safety.adb`
+   of about 7.5 MB in `~/.local/share/lrb/adblock`); a window opened
+   after that warns on a page from today's phishing list (pick one from
+   https://malware-filter.gitlab.io/malware-filter/phishing-filter.txt),
+   and on a site with content blocking turned off too. Restarting within
+   the hour fetches nothing. Then measure the instance's cost with the
+   file against without it (the 0.85 MB was measured outside Chromium).
+11. `python3 -m lrb_harness run --configs lrb-lean-pressure` against
    alpha.4: unreclaimable memory should drop on sites with many cached
    resources (the cache left RAM); the title timer and the databases
    shouldn't cost anything measurable. Also a window on Wayland against
@@ -84,8 +93,8 @@ Check before releasing:
 
 Found 2026-10-14 by looking for what content_shell leaves out and lrb
 never added back. In order (dead keys, links for other apps, your own
-certificates, certificate errors, saved passwords and autofill are in the
-next build):
+certificates, certificate errors, saved passwords and autofill, phishing
+and malware warnings are in the next build):
 
 1. **No security updates** (deferred 2026-10-14 until lrb has a
    distribution channel). Every Chromium security release (about every 4
@@ -93,9 +102,7 @@ next build):
    least: lrb notices a newer release and says so.
 2. **No spellcheck.** A few MB per dictionary: off by default, or one
    language, and measured.
-3. **No Safe Browsing** (phishing and malware warnings). The blocking
-   lists catch some malware domains, not phishing pages.
-4. **Check, likely fine:** the color and date pickers (`<input
+3. **Check, likely fine:** the color and date pickers (`<input
    type=color|date>`) open under X11 (Blink's own popups; checked on
    alpha.4) — check them on Wayland, now the default. A screen reader:
    lrb links ATK and AT-SPI (not GTK's), so Orca may work; check it,
