@@ -41,6 +41,8 @@
 //                                                 window the site left
 //                            bookmarks and address-bar suggestions:
 //                            lrb/coordinator/bookmarks.h
+//                            saved passwords and autofill: "pw-*", "af-*",
+//                            lrb/coordinator/keyring_broker.h
 //                            "open-app <url>"     a link for another app
 //                                                 (mailto:, tel:, ...; percent-
 //                                                 encoded), the user agreed:
@@ -116,6 +118,7 @@
 #include "lrb/coordinator/bookmarks.h"
 #include "lrb/coordinator/broker.h"
 #include "lrb/coordinator/confine.h"
+#include "lrb/coordinator/keyring_broker.h"
 #include "lrb/coordinator/pressure.h"
 #include "lrb/coordinator/rules.h"
 
@@ -152,6 +155,7 @@ struct Options {
   int critical_percent = 15;
   bool confine = true;
   std::string picker;  // lrb_picker; tests give a stand-in
+  std::string keyring;  // lrb_keyring; tests give a stand-in
 };
 
 using Clock = std::chrono::steady_clock;
@@ -409,6 +413,8 @@ bool ParseOptions(int argc, char** argv, Options& options) {
       options.confine = false;
     } else if (arg.starts_with("--picker=")) {
       options.picker = arg.substr(9);
+    } else if (arg.starts_with("--keyring=")) {
+      options.keyring = arg.substr(10);
     } else if (arg.starts_with("--moderate-percent=")) {
       options.moderate_percent = atoi(std::string(arg.substr(19)).c_str());
     } else if (arg.starts_with("--critical-percent=")) {
@@ -537,12 +543,11 @@ class Coordinator {
                     ? DirName(options_.browser) + "/lrb_picker"
                     : options_.picker,
                 UserDownloadsDir(),
-                [this](int fd, const std::string& line) {
-                  if (fd >= 0 && clients_.contains(fd) &&
-                      !WriteAll(fd, line + "\n")) {
-                    Drop(fd);
-                  }
-                }) {}
+                [this](int fd, const std::string& line) { Send(fd, line); }),
+        keyring_(options_.keyring.empty()
+                     ? DirName(options_.browser) + "/lrb_keyring"
+                     : options_.keyring,
+                 [this](int fd, const std::string& line) { Send(fd, line); }) {}
 
   int Run() {
     if (!Listen()) {
@@ -587,6 +592,13 @@ class Coordinator {
     return true;
   }
 
+  // A line to an instance, if it's still connected (the brokers' answers).
+  void Send(int fd, const std::string& line) {
+    if (fd >= 0 && clients_.contains(fd) && !WriteAll(fd, line + "\n")) {
+      Drop(fd);
+    }
+  }
+
   void PollOnce() {
     std::vector<pollfd> fds;
     fds.push_back({listen_fd_, POLLIN, 0});
@@ -595,6 +607,10 @@ class Coordinator {
     }
     const size_t first_picker = fds.size();
     for (int fd : broker_.fds()) {
+      fds.push_back({fd, POLLIN, 0});
+    }
+    const size_t first_keyring = fds.size();
+    for (int fd : keyring_.fds()) {
       fds.push_back({fd, POLLIN, 0});
     }
     // Wakes every 250 ms to check memory pressure and reap instances.
@@ -617,8 +633,10 @@ class Coordinator {
       if (fds[i].revents & (POLLIN | POLLHUP | POLLERR)) {
         if (i < first_picker) {
           ReadFrom(fds[i].fd);
-        } else {
+        } else if (i < first_keyring) {
           broker_.OnReadable(fds[i].fd);  // a picker answered
+        } else {
+          keyring_.OnReadable(fds[i].fd);  // the keyring answered
         }
       }
     }
@@ -680,6 +698,7 @@ class Coordinator {
 
   void Drop(int fd) {
     broker_.Forget(fd);
+    keyring_.Forget(fd);
     close(fd);
     clients_.erase(fd);
   }
@@ -698,6 +717,8 @@ class Coordinator {
       OpenSettings();
     } else if (command == "open-app") {
       OpenInApp(client, FileBroker::Decode(args));
+    } else if (command.starts_with("pw-") || command.starts_with("af-")) {
+      keyring_.Handle(client.fd, SiteOfProfile(client.profile), command, args);
     } else if (command.starts_with("pick-") || command.starts_with("save-") ||
                command == "show-saved") {
       broker_.Handle(client.fd, client.profile, command, args);
@@ -1413,7 +1434,8 @@ class Coordinator {
     pid_t pid;
     int status = 0;
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-      if (broker_.OnChildExit(pid, status)) {
+      if (broker_.OnChildExit(pid, status) ||
+          keyring_.OnChildExit(pid, status)) {
         continue;
       }
       auto profile = child_profiles_.find(pid);
@@ -1449,6 +1471,7 @@ class Coordinator {
   int children_ = 0;
   std::map<int, Client> clients_;
   coordinator::FileBroker broker_;
+  coordinator::KeyringBroker keyring_;
   // Instances' profiles by process id (Spawn).
   std::map<pid_t, std::string> child_profiles_;
   Clock::time_point last_discard_;

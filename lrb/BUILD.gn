@@ -261,10 +261,25 @@ executable("lrb_coordinator") {
     "coordinator/confine.cc",
     "coordinator/confine.h",
     "coordinator/coordinator.cc",
+    "coordinator/keyring_broker.cc",
+    "coordinator/keyring_broker.h",
     "coordinator/pressure.cc",
     "coordinator/pressure.h",
   ]
   deps = [ ":coordinator_rules" ]
+}
+
+# The desktop's keyring (Secret Service, through libsecret loaded at run
+# time) for the coordinator's saved passwords and autofill
+# (coordinator/keyring_broker.h).
+executable("lrb_keyring") {
+  sources = [ "coordinator/keyring.cc" ]
+  configs += [
+    "//build/config/linux:glib",
+    "//build/linux:gio_config",
+  ]
+  deps = [ "//third_party/libsecret" ]
+  libs = [ "dl" ]
 }
 
 # The desktop's file picker (XDG portal) for the coordinator's file broker
@@ -301,6 +316,7 @@ group("all") {
     ":lrb",
     ":adblock_rust",
     ":lrb_coordinator",
+    ":lrb_keyring",
     ":lrb_picker",
     ":lrb_unittests",
     "//content/shell:content_shell",

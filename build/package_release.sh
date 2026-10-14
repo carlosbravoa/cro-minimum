@@ -30,12 +30,12 @@ for cpu in "${cpus[@]}"; do
   tar -C "$stage" --zstd -xf "$build"
   pkg="$stage/$name"
   mkdir -p "$pkg/lib"
-  for f in lrb lrb_coordinator lrb_picker lrb.pak icudtl.dat v8_context_snapshot.bin \
+  for f in lrb lrb_coordinator lrb_picker lrb_keyring lrb.pak icudtl.dat v8_context_snapshot.bin \
            snapshot_blob.bin libEGL.so libGLESv2.so libvk_swiftshader.so \
            vk_swiftshader_icd.json CHROMIUM COMMIT args.gn; do
     [[ -e $stage/content-shell/$f ]] && mv "$stage/content-shell/$f" "$pkg/lib/"
   done
-  for f in lrb lrb_coordinator lrb_picker lrb.pak; do
+  for f in lrb lrb_coordinator lrb_picker lrb_keyring lrb.pak; do
     [[ -e $pkg/lib/$f ]] || { echo "$cpu: $f missing from $build" >&2; exit 1; }
   done
   [[ -d $stage/content-shell/resources ]] && mv "$stage/content-shell/resources" "$pkg/lib/"

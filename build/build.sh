@@ -53,7 +53,7 @@ mkdir -p "$out"
 # targets that assert enable_pdf and enable_mdns, so args.gn could not drop
 # those features otherwise.
 gn gen "$out" --root-target=//lrb --root-pattern=//lrb:all
-autoninja -C "$out" lrb lrb_coordinator lrb_picker lrb_unittests content_shell
+autoninja -C "$out" lrb lrb_coordinator lrb_picker lrb_keyring lrb_unittests content_shell
 if [[ $variant == dev ]]; then
   echo "dev build ready: $work/src/$out/lrb (and content_shell)"
   exit 0
@@ -61,7 +61,7 @@ fi
 
 stage="$(mktemp -d)"
 mkdir -p "$stage/content-shell"
-for f in lrb lrb_coordinator lrb_picker lrb.pak content_shell content_shell.pak icudtl.dat v8_context_snapshot.bin snapshot_blob.bin \
+for f in lrb lrb_coordinator lrb_picker lrb_keyring lrb.pak content_shell content_shell.pak icudtl.dat v8_context_snapshot.bin snapshot_blob.bin \
          libEGL.so libGLESv2.so libvk_swiftshader.so vk_swiftshader_icd.json; do
   [[ -e $out/$f ]] && cp -a "$out/$f" "$stage/content-shell/"
 done
