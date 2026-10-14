@@ -57,6 +57,11 @@ Chromium's per-renderer sandbox; see [Security](#security).
   and given to any site's window that asks (for the address bar's
   suggestions and the bookmarks menu): a compromised site could read that
   list, though not other sites' pages, cookies or data.
+- **Saved passwords and autofill** live in your desktop's keyring (GNOME
+  Keyring, KWallet), not in a site's process. A site's window can ask for
+  its own site's passwords only. Your name, address, email and phone are
+  shared by every site, so a compromised site could read them without
+  asking; passwords of other sites stay out of its reach.
 - **Links for other apps** (`mailto:`, `tel:`, meeting links) open only
   after you say yes in the window, but that question is asked in the
   site's own process: a compromised site could open such links without
@@ -150,6 +155,12 @@ and without the GPU. More numbers, and how to reproduce them:
 - **Links for other apps:** `mailto:`, `tel:`, Zoom and Teams meeting
   links and the like open in your desktop's app for them, after you say
   yes in the window.
+- **Saved passwords:** after you sign in, the window offers to save the
+  password in your desktop's keyring; on the sign-in form next time, it
+  offers to fill it in. Nothing is filled in without your yes. Without a
+  keyring (some minimal desktops), it isn't offered.
+- **Autofill:** your name, address, email and phone, remembered after you
+  fill in a form (if you agree) and offered on forms of every site.
 - **Certificate errors** are explained in the window (expired, for
   another site, an untrusted authority, a wrong clock) with Back, and
   Continue anyway unless the site requires valid HTTPS. On a Wi-Fi network

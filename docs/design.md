@@ -88,6 +88,7 @@ fixed budget. Targets: 2 GB x86-64 laptops (primary) and a 1 GB Raspberry Pi
 | One page crashing others | Only its renderer dies | Only its window's instance dies |
 | A site learning which other sites you use | History and bookmarks in the browser process, out of renderers' reach | **Readable by any instance** through the coordinator (address-bar suggestions, the bookmarks menu; decided 2026-10-08): the sites visited and bookmarks, not what was done there. An instance can add or remove bookmarks of its own site only |
 | A hijacked page opening other apps (`mailto:`, `tel:`, meeting links) | Asked in the browser process, out of the renderer's reach | **Asked in the site's instance**, which a hijacked page could skip; the coordinator lets through only links for apps (never web pages or files, `rules.h`), one every 2 s (`lrb/coordinator/coordinator.cc`, OpenInApp) |
+| A site reading saved passwords and autofill details | In the browser process; filled in by it | **In the desktop's keyring**, through the coordinator (`lrb/coordinator/keyring_broker.h`): an instance gets passwords of its own site only (from the profile the coordinator gave it), never others'. Autofill details (name, address, email, phone) are shared by every site: a hijacked instance can read them without asking (decided 2026-10-14) |
 
 The remaining exposure is third-party frames inside a site's own window.
 Banks and email providers carry few, and content blocking removes most of

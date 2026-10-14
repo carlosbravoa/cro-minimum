@@ -44,6 +44,8 @@
 #include "lrb/browser/coordinator_client.h"
 #include "lrb/browser/dark_pages.h"
 #include "lrb/browser/external_links.h"
+#include "lrb/browser/forms.h"
+#include "lrb/browser/keyring.h"
 #include "lrb/browser/devtools_manager_delegate.h"
 #include "lrb/browser/list_updater.h"
 #include "lrb/browser/lrb_browser_context.h"
@@ -255,6 +257,9 @@ void LrbContentBrowserClient::OnCoordinatorLine(const std::string& line) {
   }
   if (OnBookmarksLine(line)) {
     return;  // bookmarks.h
+  }
+  if (OnKeyringLine(line)) {
+    return;  // saved passwords and autofill (keyring.h)
   }
   if (line == "discard") {
     DiscardPages();
@@ -551,6 +556,7 @@ void LrbContentBrowserClient::RegisterBrowserInterfaceBindersForFrame(
     mojo::BinderMapWithContext<content::RenderFrameHost*>* map) {
   PerformanceManager().GetBinders().ExposeInterfacesToRenderFrame(map);
   map->Add<network_hints::mojom::NetworkHintsHandler>(&BindNetworkHintsHandler);
+  map->Add<mojom::Forms>(&BindForms);
 }
 
 void LrbContentBrowserClient::OpenURL(

@@ -1,0 +1,34 @@
+// Copyright 2026 The low-ram-browser Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+module lrb.mojom;
+
+import "mojo/public/mojom/base/string16.mojom";
+
+// A page's forms (lrb/renderer/forms.h) to the browser (lrb/browser/forms.h):
+// saved passwords and autofill details, kept in the desktop's keyring
+// through the coordinator and asked about in the window first. Bound for
+// the main frame only.
+interface Forms {
+  // A sign-in was submitted (or the page left after one was typed): the
+  // browser offers to save the password.
+  PasswordSubmitted(mojo_base.mojom.String16 username,
+                    mojo_base.mojom.String16 password);
+
+  // The page shows a sign-in form: the browser asks whether to fill in a
+  // saved password; the reply is what to fill in, if the user said yes.
+  OfferPassword() => (mojo_base.mojom.String16? username,
+                      mojo_base.mojom.String16? password);
+
+  // A form with name, address, email or phone fields was submitted, keyed
+  // by their autocomplete tokens ("email", "postal-code"): the browser
+  // offers to remember them for every site.
+  DetailsSubmitted(map<string, mojo_base.mojom.String16> fields);
+
+  // The page shows such a form, with these fields: the browser asks
+  // whether to fill in the saved details; the reply is what to fill in,
+  // if the user said yes.
+  OfferDetails(array<string> fields)
+      => (map<string, mojo_base.mojom.String16>? values);
+};

@@ -11,6 +11,7 @@
 # //content/shell but its resource pak.
 
 import("//build/rust/rust_static_library.gni")
+import("//mojo/public/tools/bindings/mojom.gni")
 import("//printing/buildflags/buildflags.gni")
 import("//tools/grit/repack.gni")
 import("//testing/test.gni")
@@ -46,6 +47,10 @@ executable("lrb") {
     "browser/external_links.h",
     "browser/favicon.cc",
     "browser/favicon.h",
+    "browser/forms.cc",
+    "browser/forms.h",
+    "browser/keyring.cc",
+    "browser/keyring.h",
     "browser/list_updater.cc",
     "browser/lrb_browser_context.cc",
     "browser/lrb_browser_context.h",
@@ -95,6 +100,8 @@ executable("lrb") {
     "common/lrb_switches.h",
     "renderer/cosmetic_filter.cc",
     "renderer/cosmetic_filter.h",
+    "renderer/forms.cc",
+    "renderer/forms.h",
     "renderer/lrb_content_renderer_client.cc",
     "renderer/lrb_content_renderer_client.h",
   ]
@@ -102,6 +109,7 @@ executable("lrb") {
   deps = [
     ":adblock_rust",
     ":coordinator_rules",
+    ":mojom",
     ":settings",
     "//base",
     "//base:i18n",
@@ -234,6 +242,12 @@ repack("pak") {
 # Maps sites to instances; a separate small program that never loads web
 # content. Deliberately links nothing from Chromium.
 # The user's settings file (lrb/common/settings.h).
+# Between a page's forms and the browser (common/forms.mojom).
+mojom("mojom") {
+  sources = [ "common/forms.mojom" ]
+  public_deps = [ "//mojo/public/mojom/base" ]
+}
+
 source_set("settings") {
   sources = [
     "common/settings.cc",

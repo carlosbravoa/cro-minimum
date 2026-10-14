@@ -20,6 +20,7 @@
 #include "content/public/renderer/render_thread.h"
 #include "lrb/common/content_blocker.h"
 #include "lrb/renderer/cosmetic_filter.h"
+#include "lrb/renderer/forms.h"
 #include "net/base/net_errors.h"
 #include "printing/buildflags/buildflags.h"
 #include "third_party/blink/public/platform/url_loader_throttle_provider.h"
@@ -133,6 +134,10 @@ void LrbContentRendererClient::RenderFrameCreated(
     content::RenderFrame* render_frame) {
   if (ContentBlocker::loaded()) {
     new CosmeticFilter(render_frame);  // deletes itself with the frame
+  }
+  // Saved passwords and autofill: the page's own forms only.
+  if (render_frame->IsMainFrame()) {
+    new FormsAgent(render_frame);  // deletes itself with the frame
   }
 #if BUILDFLAG(ENABLE_PRINTING)
   // The page is printed from its main frame, its iframes with it (in this
