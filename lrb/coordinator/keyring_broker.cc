@@ -21,9 +21,13 @@ namespace lrb::coordinator {
 namespace {
 
 constexpr size_t kMaxId = 32;
-constexpr size_t kMaxUser = 1024;
-constexpr size_t kMaxPassword = 4096;
-constexpr size_t kMaxRecord = 16384;  // under a pipe's buffer: see Start
+// Lines are at most 9000 bytes each way (kMaxLine), and values travel
+// percent-encoded (up to 3 bytes each; the record's own encoding is
+// encoded again): these keep every answer under it. Also well under a
+// pipe's buffer: see Start.
+constexpr size_t kMaxUser = 256;
+constexpr size_t kMaxPassword = 1024;
+constexpr size_t kMaxRecord = 2400;
 
 // lrb_keyring's exit statuses (keyring.cc).
 constexpr int kDone = 0;
@@ -158,7 +162,7 @@ void KeyringBroker::Start(Job job,
     Finish(job);
     return;
   }
-  // The secret fits the pipe's buffer (64 KiB; kMaxRecord is less), so
+  // The secret fits the pipe's buffer (64 KiB; kMaxRecord is far less), so
   // it's written before the helper runs and never blocks.
   for (size_t done = 0; done < input.size();) {
     const ssize_t n = write(in[1], input.data() + done, input.size() - done);
@@ -217,7 +221,7 @@ void KeyringBroker::OnReadable(int fd) {
   char buffer[4096];
   const ssize_t n = read(fd, buffer, sizeof(buffer));
   if (n > 0) {
-    if (job.output.size() < kMaxRecord + 4096) {
+    if (job.output.size() <= 9000) {  // enough to know it's too long
       job.output.append(buffer, static_cast<size_t>(n));
     }
     return;
@@ -265,14 +269,17 @@ void KeyringBroker::Finish(Job& job) {
       size_t start = 0;
       for (size_t end; (end = job.output.find('\n', start)) != std::string::npos;
            start = end + 1) {
-        if (end > start) {
+        // Never a line over the limit: the instance would drop the rest.
+        if (end > start && users.size() + (end - start) < 8000) {
           users += " " + job.output.substr(start, end - start);
         }
       }
       Answer(job, users);
     }
   } else if (job.command == "pw-get" || job.command == "af-get") {
-    Answer(job, code == kDone && !job.output.empty()
+    // Over the limit: not one lrb saved (lrb_keyring prints it whole).
+    Answer(job, code == kDone && !job.output.empty() &&
+                        job.output.size() <= kMaxRecord
                     ? "ok " + FileBroker::Encode(job.output)
                     : "none");
   } else {
