@@ -21,6 +21,7 @@ namespace lrb {
 
 class LrbDownloadManagerDelegate;
 class LrbPermissionManager;
+class LrbSslHostState;
 class SitePermissions;
 class ZoomLevels;
 
@@ -85,6 +86,7 @@ class LrbBrowserContext : public content::BrowserContext {
   std::unique_ptr<LrbPermissionManager> permission_manager_;
   std::unique_ptr<LrbDownloadManagerDelegate> download_delegate_;
   std::unique_ptr<ZoomLevels> zoom_levels_;
+  std::unique_ptr<LrbSslHostState> ssl_host_state_;
   std::unique_ptr<content::BackgroundSyncController>
       background_sync_controller_;
   std::unique_ptr<content::OriginTrialsControllerDelegate>

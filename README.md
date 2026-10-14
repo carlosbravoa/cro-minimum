@@ -150,6 +150,11 @@ and without the GPU. More numbers, and how to reproduce them:
 - **Links for other apps:** `mailto:`, `tel:`, Zoom and Teams meeting
   links and the like open in your desktop's app for them, after you say
   yes in the window.
+- **Certificate errors** are explained in the window (expired, for
+  another site, an untrusted authority, a wrong clock) with Back, and
+  Continue anyway unless the site requires valid HTTPS. On a Wi-Fi network
+  that wants you to sign in first (hotels, airports), it offers that
+  instead.
 - **Print to PDF** (Ctrl+P, the menu, or the page's own Print button): the
   page as a PDF saved where you choose; print it from your PDF viewer.
   There's no print dialog or preview: Chrome's costs tens of MB.

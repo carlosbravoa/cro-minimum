@@ -23,6 +23,7 @@
 #include "lrb/browser/download_manager_delegate.h"
 #include "lrb/browser/permission_manager.h"
 #include "lrb/browser/permissions/site_permissions.h"
+#include "lrb/browser/ssl_host_state.h"
 #include "lrb/browser/zoom_levels.h"
 #include "lrb/common/lrb_switches.h"
 #include "third_party/blink/public/common/origin_trials/trial_token_validator.h"
@@ -172,7 +173,10 @@ LrbBrowserContext::GetStorageNotificationService() {
 }
 
 content::SSLHostStateDelegate* LrbBrowserContext::GetSSLHostStateDelegate() {
-  return nullptr;
+  if (!ssl_host_state_) {
+    ssl_host_state_ = std::make_unique<LrbSslHostState>();
+  }
+  return ssl_host_state_.get();
 }
 
 content::PermissionControllerDelegate*

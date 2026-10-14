@@ -27,7 +27,7 @@ for t in test_site_windows.py test_back_x11.py test_permission_prompt_x11.py \
          test_close_warning_x11.py test_portal_picker.py test_context_menu_x11.py \
          test_find_zoom_x11.py test_sign_in_x11.py test_blocking_switch_x11.py \
          test_settings_x11.py test_tabs_x11.py test_shortcuts_x11.py \
-         test_print_dark_x11.py; do
+         test_print_dark_x11.py test_certificate_error_x11.py; do
   run 300 "$t" "$dir/lrb"
 done
 # Through the coordinator (confined), on the X11 display.

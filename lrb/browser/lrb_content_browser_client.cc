@@ -40,6 +40,7 @@
 #include "lrb/browser/activity_tracker.h"
 #include "lrb/browser/blocking_url_loader_factory.h"
 #include "lrb/browser/bookmarks.h"
+#include "lrb/browser/certificate_errors.h"
 #include "lrb/browser/coordinator_client.h"
 #include "lrb/browser/dark_pages.h"
 #include "lrb/browser/external_links.h"
@@ -649,6 +650,22 @@ void LrbContentBrowserClient::ConfigureNetworkContextParams(
   // first request after a restart can't be downgraded to plain HTTP.
   network_context_params->file_paths->transport_security_persister_file_name =
       base::FilePath(FILE_PATH_LITERAL("TransportSecurity"));
+}
+
+void LrbContentBrowserClient::AllowCertificateError(
+    content::WebContents* web_contents,
+    int cert_error,
+    const net::SSLInfo& ssl_info,
+    const GURL& request_url,
+    bool is_primary_main_frame_request,
+    bool strict_enforcement,
+    base::OnceCallback<void(content::CertificateRequestResultType)> callback) {
+  if (!web_contents || !is_primary_main_frame_request) {
+    std::move(callback).Run(content::CertificateRequestResultType::DENY);
+    return;
+  }
+  AskAboutCertificateError(web_contents, cert_error, request_url,
+                           strict_enforcement, std::move(callback));
 }
 
 bool LrbContentBrowserClient::HandleExternalProtocol(

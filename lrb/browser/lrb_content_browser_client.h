@@ -173,6 +173,18 @@ class LrbContentBrowserClient : public content::ContentBrowserClient {
       bool is_integration_test) override;
   void CreateThrottlesForNavigation(
       content::NavigationThrottleRegistry& registry) override;
+  // A page whose certificate isn't valid: explained in the window, with
+  // Back and (unless the site requires valid HTTPS) Continue anyway
+  // (certificate_errors.h). Other requests with one are refused.
+  void AllowCertificateError(
+      content::WebContents* web_contents,
+      int cert_error,
+      const net::SSLInfo& ssl_info,
+      const GURL& request_url,
+      bool is_primary_main_frame_request,
+      bool strict_enforcement,
+      base::OnceCallback<void(content::CertificateRequestResultType)>
+          callback) override;
   // Links for other apps (mailto:, tel:, ...): asked about in the window,
   // then opened by the desktop (external_links.h).
   bool HandleExternalProtocol(
