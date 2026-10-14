@@ -14,6 +14,7 @@
 #include "base/no_destructor.h"
 #include "base/strings/string_util.h"
 #include "base/feature_list.h"
+#include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
 #include "base/memory/memory_pressure_listener.h"
@@ -619,6 +620,23 @@ void LrbContentBrowserClient::ConfigureNetworkContextParams(
   network_context_params->enable_zstd = true;
   network_context_params->device_bound_sessions_enabled =
       base::FeatureList::IsEnabled(net::features::kDeviceBoundSessions);
+  // Cookies on disk, in the site's profile (content_shell kept them in
+  // memory only: every site was signed out at each start). Session
+  // cookies still end with the process, as they do in Chrome without
+  // session restore.
+  if (in_memory || !relative_partition_path.empty()) {
+    return;
+  }
+  network_context_params->file_paths =
+      network::mojom::NetworkContextFilePaths::New();
+  network_context_params->file_paths->data_directory = context->GetPath();
+  network_context_params->file_paths->cookie_database_name =
+      base::FilePath(FILE_PATH_LITERAL("Cookies"));
+  // Unencrypted: Chromium 155 has no fallback without a key provider
+  // (NOTREACHED), and on Linux without a keyring Chrome's key is a fixed,
+  // public one anyway. The profile is the user's alone (0700) and other
+  // sites' confined processes can't reach it.
+  network_context_params->enable_encrypted_cookies = false;
 }
 
 std::vector<base::FilePath>
