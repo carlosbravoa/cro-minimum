@@ -289,7 +289,7 @@ bool MakeDirs(const std::string& path, mode_t mode) {
 
 // What a confined instance may reach: the system's files (libraries, fonts,
 // certificates, devices), the desktop's settings it renders with, the filter
-// lists and lrb's settings to read, and `rw_dir` (its profile) to write. Not
+// lists, lrb's settings and the user's NSS database to read, and `rw_dir` (its profile) to write. Not
 // the user's home: other sites' profiles, keys, documents. Files the user
 // picks reach it through the coordinator (broker.h). `settings_writer`: the
 // settings window's process (no web content), the one that may write lrb's
@@ -320,6 +320,11 @@ coordinator::ConfinePolicy InstancePolicy(const Options& options,
       config + "/dconf", config + "/pulse", config + "/lrb", data + "/fonts",
       data + "/icons",
       data + "/themes", home + "/.fonts", home + "/.icons", home + "/.themes",
+      // The user's NSS database, shared with Chrome and Firefox: client
+      // certificates and authorities the user added. Read only: a hijacked
+      // page mustn't add an authority there. Chromium opens it read-write;
+      // SQLite falls back to reading (checked under this policy).
+      home + "/.pki/nssdb", data + "/pki/nssdb",
   };
   policy.read_write = {
       rw_dir,

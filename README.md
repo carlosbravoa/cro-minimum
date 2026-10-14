@@ -42,7 +42,8 @@ Chromium's per-renderer sandbox; see [Security](#security).
 - **Every site's process is confined** by `lrb_coordinator` before it
   starts: Landlock limits it to its own profile, the browser's files, and
   what a desktop browser needs (system libraries, fonts, themes, sound,
-  camera, GPU), not your home directory or other sites' profiles. seccomp
+  camera, GPU, and your certificate store `~/.pki/nssdb` to read but not
+  change), not your home directory or other sites' profiles. seccomp
   refuses system calls a browser never needs, and `no_new_privs` keeps
   setuid programs from giving privileges back. On a kernel without
   Landlock, seccomp and `no_new_privs` still apply.
