@@ -179,7 +179,21 @@ and without the GPU. More numbers, and how to reproduce them:
   lighter ones for less memory, or off; the menu also turns it off for
   one site).
 
-## Download
+## What it leaves out
+
+On purpose, for memory or safety:
+
+- **Extensions and sync.** Content blocking is built in.
+- **DRM** (Widevine): Netflix, Spotify and other protected video and
+  music won't play.
+- **The PDF viewer:** PDFs download; open them in your PDF viewer.
+- **Notifications and location:** refused for every site.
+- **Screen sharing:** refused, so video calls in the browser can't
+  present your screen (camera and microphone work, after asking).
+- **Translation:** it would send pages' text to an online service.
+- **Automatic updates:** new releases, with Chromium's security fixes,
+  are installed by hand (see Download).
+
 
 Pre-releases for 64-bit x86 and ARM Linux (a Raspberry Pi with the 64-bit
 OS) are on the [releases page](https://github.com/carlosbravoa/low-ram-browser/releases).
