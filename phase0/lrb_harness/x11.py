@@ -9,6 +9,7 @@ windows only, never to the focused window.
 import ctypes, ctypes.util
 import glob
 import os
+import re
 import time
 
 # A terminal session may lack DISPLAY even with a desktop running (e.g.
@@ -54,11 +55,13 @@ if not d:
     raise RuntimeError(f"no X11 display (DISPLAY={os.environ.get('DISPLAY')!r}): the X11 "
                        "tests need a desktop session (XWayland works)")
 root = x.XDefaultRootWindow(d)
+MEMORY_SUFFIX = re.compile(" \u2014 \\d+ MB$")
 def title(w):
     utf8 = x.XInternAtom(d, b"UTF8_STRING", 0); name = x.XInternAtom(d, b"_NET_WM_NAME", 0)
     t, f, n, after, data = ctypes.c_ulong(), ctypes.c_int(), ctypes.c_ulong(), ctypes.c_ulong(), ctypes.c_void_p()
     if x.XGetWindowProperty(d, w, name, 0, 1024, 0, utf8, ctypes.byref(t), ctypes.byref(f), ctypes.byref(n), ctypes.byref(after), ctypes.byref(data)) == 0 and data.value:
-        return ctypes.string_at(data.value, n.value).decode(errors="replace")
+        # Without the site's memory lrb puts after the page's title.
+        return MEMORY_SUFFIX.sub("", ctypes.string_at(data.value, n.value).decode(errors="replace"))
     return ""
 def windows():
     found = []

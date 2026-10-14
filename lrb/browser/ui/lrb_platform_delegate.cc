@@ -5,18 +5,25 @@
 #include "lrb/browser/ui/lrb_platform_delegate.h"
 
 #include <memory>
+#include <string>
+#include <string_view>
 #include <utility>
 
 #include "base/check.h"
 #include "base/files/file_enumerator.h"
+#include "base/files/file_path.h"
+#include "base/files/file_util.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/logging.h"
 #include "base/no_destructor.h"
 #include "base/strings/strcat.h"
+#include "base/strings/string_number_conversions.h"
+#include "base/strings/string_split.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
+#include "base/time/time.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/file_select_listener.h"
 #include "content/public/browser/media_capture_devices.h"
@@ -66,6 +73,31 @@ std::optional<gfx::Rect>& NextWindowBounds() {
 GURL& NextWindowBackUrl() {
   static base::NoDestructor<GURL> back;
   return *back;
+}
+
+constexpr base::TimeDelta kMemoryPeriod = base::Seconds(5);
+
+// This process's PSS in MB (/proc/self/smaps_rollup), or nothing if it
+// can't be read. Blocks: on the thread pool.
+std::optional<int> ReadProcessMegabytes() {
+  std::string rollup;
+  if (!base::ReadFileToString(base::FilePath("/proc/self/smaps_rollup"),
+                              &rollup)) {
+    return std::nullopt;
+  }
+  for (std::string_view line : base::SplitStringPiece(
+           rollup, "\n", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY)) {
+    if (!line.starts_with("Pss:")) {
+      continue;
+    }
+    std::vector<std::string_view> fields = base::SplitStringPiece(
+        line, " ", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
+    int kilobytes = 0;
+    if (fields.size() >= 2 && base::StringToInt(fields[1], &kilobytes)) {
+      return (kilobytes + 512) / 1024;
+    }
+  }
+  return std::nullopt;
 }
 
 WindowView* ViewOf(views::Widget* widget) {
@@ -194,6 +226,43 @@ void LrbPlatformDelegate::Initialize() {
     screen_ = views::CreateDesktopScreen();
   }
   views_delegate_ = std::make_unique<LrbViewsDelegate>();
+  memory_timer_.Start(FROM_HERE, kMemoryPeriod,
+                      base::BindRepeating(&LrbPlatformDelegate::UpdateMemory,
+                                          base::Unretained(this)));
+  UpdateMemory();
+}
+
+void LrbPlatformDelegate::UpdateMemory() {
+  base::ThreadPool::PostTaskAndReplyWithResult(
+      FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
+      base::BindOnce(&ReadProcessMegabytes),
+      base::BindOnce(&LrbPlatformDelegate::OnMemoryRead,
+                     weak_factory_.GetWeakPtr()));
+}
+
+void LrbPlatformDelegate::OnMemoryRead(std::optional<int> megabytes) {
+  if (megabytes == memory_mb_) {
+    return;
+  }
+  memory_mb_ = megabytes;
+  for (const std::unique_ptr<Window>& window : windows_) {
+    if (window->closing) {
+      continue;
+    }
+    if (Shell* shell = ViewOf(window.get())->shell()) {
+      window->widget->widget_delegate()->SetTitle(
+          WindowTitle(shell->web_contents()->GetTitle()));
+    }
+  }
+}
+
+std::u16string LrbPlatformDelegate::WindowTitle(
+    const std::u16string& page_title) const {
+  if (!memory_mb_) {
+    return page_title;
+  }
+  return base::StrCat({page_title, u" \u2014 ",
+                       base::NumberToString16(*memory_mb_), u" MB"});
 }
 
 void LrbPlatformDelegate::DidCloseLastWindow() {
@@ -723,7 +792,7 @@ void LrbPlatformDelegate::Activate(Window* window, size_t index) {
     tracker->RestoreNow();
   }
   window->widget->widget_delegate()->SetTitle(
-      tab.shell->web_contents()->GetTitle());
+      WindowTitle(tab.shell->web_contents()->GetTitle()));
   UpdateTabs(window);
 }
 
@@ -995,7 +1064,7 @@ void LrbPlatformDelegate::SetIsLoading(Shell* shell, bool loading) {
       // A restored page commits with the title it already had, which Shell
       // doesn't report: the window would stay untitled.
       window->widget->widget_delegate()->SetTitle(
-          shell->web_contents()->GetTitle());
+          WindowTitle(shell->web_contents()->GetTitle()));
     }
   }
   if (!loading) {
@@ -1011,7 +1080,7 @@ void LrbPlatformDelegate::SetTitle(Shell* shell,
   }
   window->tabs[*TabOf(window, shell)].title = title;
   if (ViewOf(window)->shell() == shell) {
-    window->widget->widget_delegate()->SetTitle(title);
+    window->widget->widget_delegate()->SetTitle(WindowTitle(title));
   }
   UpdateTabs(window);
 }

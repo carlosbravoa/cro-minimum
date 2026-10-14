@@ -13,6 +13,7 @@
 #include "base/functional/callback_forward.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/timer/timer.h"
 #include "base/values.h"
 #include "content/public/browser/media_stream_request.h"
 #include "content/public/browser/page_navigator.h"
@@ -265,6 +266,15 @@ class LrbPlatformDelegate : public views::WidgetObserver {
   // address.
   void LoadTab(content::BrowserContext* context, const TabState& tab);
 
+  // The site's memory in the window titles (decided 2026-10-14): the site
+  // is this one process, so its PSS is what the site costs, as the README's
+  // table counts it. Read every few seconds off the UI thread; titles change
+  // only when the whole-MB figure does.
+  void UpdateMemory();
+  void OnMemoryRead(std::optional<int> megabytes);
+  // `page_title` with the site's memory after it.
+  std::u16string WindowTitle(const std::u16string& page_title) const;
+
   // The window's close button or the window manager closed it.
   void OnWindowClosed(Window* window);
   void CloseWindow(Window* window);
@@ -286,6 +296,8 @@ class LrbPlatformDelegate : public views::WidgetObserver {
   base::RepeatingCallback<Shell*(content::BrowserContext*,
                                           const TabState&)>
       tab_loader_;
+  base::RepeatingTimer memory_timer_;
+  std::optional<int> memory_mb_;
 
   base::WeakPtrFactory<LrbPlatformDelegate> weak_factory_{this};
 };

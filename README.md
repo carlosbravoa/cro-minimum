@@ -147,6 +147,9 @@ and without the GPU. More numbers, and how to reproduce them:
 - **Dark pages**, per site, from the menu: pages that have a dark theme
   use it, Blink darkens the rest.
 - **Page icons** in the tabs and on the window (taskbar, Alt+Tab).
+- **The site's memory in the title bar**, after the page's title (e.g.
+  `Linux - Wikipedia — 259 MB`): the site's whole process, re-read every
+  5 s.
 - **Shortcuts:**
 
   | Keys | Does |
