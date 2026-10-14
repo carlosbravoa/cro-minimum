@@ -33,6 +33,10 @@ namespace lrb {
 // it when the file is missing or old, so the coordinator itself needs no
 // network code and the lists are fetched by Chromium's network stack.
 //
+// With --lrb-adblock-setting=safety, the phishing and malware lists
+// instead (SafetyList), into an engine file of their own, without
+// surrogates or scriptlets.
+//
 // Also writes <engine file>.resources.json: the surrogates $redirect rules
 // answer with (no-op scripts, a 1x1 image, ...), assembled from uBlock
 // Origin's web_accessible_resources, and uBlock Origin's scriptlets (+js
@@ -42,9 +46,13 @@ namespace lrb {
 // If any download fails, the existing files are kept.
 class ListUpdater {
  public:
+  enum class Lists { kFull, kLean, kSafety };
+
+  // `urls`: the lists to fetch; empty for `lists`' own (ListUrls).
   ListUpdater(content::BrowserContext* browser_context,
               base::FilePath engine_file,
-              bool lean,
+              Lists lists,
+              std::vector<std::string> urls,
               base::OnceClosure done);
   ListUpdater(const ListUpdater&) = delete;
   ListUpdater& operator=(const ListUpdater&) = delete;
@@ -53,7 +61,7 @@ class ListUpdater {
   void Start();
 
   // The lists for each setting.
-  static std::vector<std::string> ListUrls(bool lean);
+  static std::vector<std::string> ListUrls(Lists lists);
 
   // While an updater runs: catches the scriptlet page's result (a POST to
   // lrb-updater.invalid) among the requests of a URLLoaderFactory being
@@ -81,7 +89,7 @@ class ListUpdater {
 
   const raw_ptr<content::BrowserContext> browser_context_;
   const base::FilePath engine_file_;
-  const bool lean_;
+  const Lists kind_;
   base::OnceClosure done_;
   const std::vector<std::string> urls_;
   std::vector<std::string> lists_;

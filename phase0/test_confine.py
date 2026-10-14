@@ -5,8 +5,9 @@
 A stand-in instance (this script, started by the coordinator as its browser,
 so confined like lrb) reports what it can open, in a made-up home: its own
 profile to write, the user's NSS database (client certificates, added
-authorities) to read and open with NSS but not write, and nothing else of
-the home. No lrb needed.
+authorities) to read and open with NSS but not write, the phishing and
+malware lists' file to read but not write, and nothing else of the home.
+No lrb needed.
 """
 
 import ctypes
@@ -23,6 +24,7 @@ import ctypes, json, os, sys
 home = os.environ["HOME"]
 profile = next(a.split("=", 1)[1] for a in sys.argv if a.startswith("--user-data-dir="))
 db = home + "/.pki/nssdb"
+safety = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--lrb-safety-file=")), None)
 def can(action):
     try:
         action()
@@ -37,6 +39,9 @@ result = {
     "open nssdb with NSS": nss.NSS_InitReadWrite(("sql:" + db).encode()) == 0,
     "write nssdb": can(lambda: open(db + "/planted", "w").close()),
     "read documents": can(lambda: os.listdir(home + "/Documents")),
+    "given the safety file": bool(safety),
+    "read safety file": bool(safety) and can(lambda: open(safety, "rb").read(6)),
+    "write safety file": bool(safety) and can(lambda: open(safety, "ab").close()),
 }
 with open(profile + "/result.json", "w") as f:
     json.dump(result, f)
@@ -57,6 +62,11 @@ def main():
     nss = ctypes.CDLL("libnss3.so")
     created = nss.NSS_InitReadWrite(("sql:" + db).encode()) == 0
     nss.NSS_Shutdown()
+    # Fresh lists: the coordinator gives windows the file and fetches none.
+    adblock_dir = os.path.join(home, ".local", "share", "lrb", "adblock")
+    os.makedirs(adblock_dir)
+    with open(os.path.join(adblock_dir, "safety.adb"), "w") as f:
+        f.write("engine")
     bin_dir = os.path.join(work, "bin")
     os.makedirs(bin_dir)
     instance = os.path.join(bin_dir, "instance")
@@ -98,6 +108,10 @@ def main():
     check("it can't write it (no planted authorities)",
           result.get("write nssdb") is False and not os.path.exists(os.path.join(db, "planted")))
     check("nor read the rest of the home", result.get("read documents") is False)
+    check("it reads the phishing and malware lists' file",
+          result.get("given the safety file") is True and result.get("read safety file") is True,
+          result)
+    check("...but can't change it", result.get("write safety file") is False)
     print(f"{failures} failure(s)")
     sys.exit(1 if failures else 0)
 

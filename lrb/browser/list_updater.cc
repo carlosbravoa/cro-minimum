@@ -48,9 +48,12 @@ constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
       semantics {
         sender: "lrb content blocking"
         description: "Downloads the public ad and tracker filter lists "
-          "(EasyList, EasyPrivacy, uBlock Origin) that lrb blocks with."
-        trigger: "lrb_coordinator, when the compiled lists are missing or "
-          "more than a day old."
+          "(EasyList, EasyPrivacy, uBlock Origin) that lrb blocks with, and "
+          "the phishing and malware lists (malware-filter, uBlock Origin) "
+          "it warns with."
+        trigger: "lrb_coordinator: the filter lists when missing or more "
+          "than a day old; the phishing and malware lists when lrb starts, "
+          "if more than an hour old."
         data: "None: plain GETs of public files, no cookies."
         destination: OTHER
       }
@@ -61,7 +64,8 @@ constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
 
 // Compiles and writes the engine file (thread pool: CPU and disk).
 bool CompileAndWrite(std::vector<std::string> lists,
-                     bool lean,
+                     std::vector<std::string> urls,
+                     ListUpdater::Lists kind,
                      base::FilePath out) {
   rust::Vec<rust::String> rust_lists;
   for (const std::string& list : lists) {
@@ -70,11 +74,14 @@ bool CompileAndWrite(std::vector<std::string> lists,
   // uBlock Origin trusts its own lists (they may use scriptlets that need
   // trust, e.g. YouTube's ad stripping); EasyList and EasyPrivacy are not.
   rust::Vec<bool> trusted;
-  for (const std::string& url : ListUpdater::ListUrls(lean)) {
+  for (const std::string& url : urls) {
     trusted.push_back(url.starts_with("https://ublockorigin.github.io/"));
   }
   const rust::Vec<uint8_t> file =
-      adblock::compile_engine_file(rust_lists, trusted, lean);
+      kind == ListUpdater::Lists::kSafety
+          ? adblock::compile_safety_file(rust_lists)
+          : adblock::compile_engine_file(rust_lists, trusted,
+                                         kind == ListUpdater::Lists::kLean);
   // Write next to the target, then rename: instances map the file, so it
   // must never be seen half-written.
   const base::FilePath tmp = out.AddExtension(FILE_PATH_LITERAL("tmp"));
@@ -261,7 +268,19 @@ void ListUpdater::MaybeInterceptRequests(
 }
 
 // static
-std::vector<std::string> ListUpdater::ListUrls(bool lean) {
+std::vector<std::string> ListUpdater::ListUrls(Lists lists) {
+  if (lists == Lists::kSafety) {
+    // Phishing pages (from OpenPhish, PhishTank and IPThreat) and malware
+    // downloads (URLhaus), both refreshed upstream twice a day; uBlock
+    // Origin's badware: sites that push malware or steal sign-ins.
+    return {
+        "https://malware-filter.gitlab.io/malware-filter/phishing-filter.txt",
+        "https://malware-filter.gitlab.io/malware-filter/"
+        "urlhaus-filter-online.txt",
+        "https://ublockorigin.github.io/uAssets/filters/badware.txt",
+    };
+  }
+  const bool lean = lists == Lists::kLean;
   std::vector<std::string> urls = {
       "https://easylist.to/easylist/easylist.txt",
       "https://easylist.to/easylist/easyprivacy.txt",
@@ -280,13 +299,14 @@ std::vector<std::string> ListUpdater::ListUrls(bool lean) {
 
 ListUpdater::ListUpdater(content::BrowserContext* browser_context,
                          base::FilePath engine_file,
-                         bool lean,
+                         Lists lists,
+                         std::vector<std::string> urls,
                          base::OnceClosure done)
     : browser_context_(browser_context),
       engine_file_(std::move(engine_file)),
-      lean_(lean),
+      kind_(lists),
       done_(std::move(done)),
-      urls_(ListUrls(lean)) {
+      urls_(urls.empty() ? ListUrls(lists) : std::move(urls)) {
   g_updater = this;
 }
 
@@ -336,7 +356,8 @@ void ListUpdater::OnFetched(size_t index, std::optional<std::string> body) {
   loader_.reset();
   base::ThreadPool::PostTaskAndReplyWithResult(
       FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
-      base::BindOnce(&CompileAndWrite, std::move(lists_), lean_, engine_file_),
+      base::BindOnce(&CompileAndWrite, std::move(lists_), urls_, kind_,
+                     engine_file_),
       base::BindOnce(&ListUpdater::OnWritten, weak_factory_.GetWeakPtr()));
 }
 
@@ -346,7 +367,11 @@ void ListUpdater::OnWritten(bool ok) {
     std::move(done_).Run();
     return;
   }
-  VLOG(1) << "lrb: content-blocking engine updated: " << engine_file_;
+  VLOG(1) << "lrb: engine updated: " << engine_file_;
+  if (kind_ == Lists::kSafety) {
+    std::move(done_).Run();  // no surrogates or scriptlets
+    return;
+  }
   FetchResourceMap();
 }
 
@@ -411,7 +436,7 @@ void ListUpdater::OnSurrogatesAssembled(std::optional<std::string> json) {
     return;
   }
   surrogates_json_ = std::move(*json);
-  if (lean_) {
+  if (kind_ == Lists::kLean) {
     OnScriptlets(std::string("[]"));  // the lean setting has no +js rules
     return;
   }
@@ -443,7 +468,7 @@ void ListUpdater::OnScriptlets(std::optional<std::string> json) {
   if (scriptlets) {
     VLOG(1) << "lrb: " << scriptlets->size() << " scriptlets";
     resources = JoinJsonArrays(resources, *json);
-  } else if (!lean_) {
+  } else if (kind_ != Lists::kLean) {
     LOG(ERROR) << "lrb: no scriptlets this time (couldn't load uBlock "
                   "Origin's module); surrogates only";
   }

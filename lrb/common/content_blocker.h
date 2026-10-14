@@ -14,6 +14,17 @@ class GURL;
 
 namespace lrb {
 
+namespace adblock {
+struct Engine;  // lrb/adblock/lib.rs
+}
+
+// Maps an engine file (ListUpdater writes them: lrb's container around
+// adblock-rust's serialized engine) and loads the engine in place, with the
+// surrogates next to it if `with_resources`. Both stay for the rest of the
+// process. Null, with a warning, if the file can't be used. Blocking.
+const adblock::Engine* LoadEngineFile(const base::FilePath& path,
+                                      bool with_resources);
+
 // Ad and tracker blocking with adblock-rust (lrb/adblock). One engine per
 // process, used from any thread, in place from a read-only engine file
 // that every instance maps (so the rules aren't copied into each).

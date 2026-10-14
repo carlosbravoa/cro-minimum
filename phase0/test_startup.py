@@ -81,7 +81,8 @@ def main():
         if os.path.exists(port_file):
             os.remove(port_file)  # the killed instance's
         args = [f"{out}/lrb_coordinator", f"--browser={out}/lrb", "--verbose",
-                f"--profiles-dir={profiles}", f"--socket={work}/c.sock"]
+                f"--profiles-dir={profiles}", f"--socket={work}/c.sock",
+                "--safety-lists=off"]
         coordinator = subprocess.Popen(
             args + ([url] if url else []) + ["--"] + LEAN_ARGS,
             stdout=open(log_path, "a"), stderr=subprocess.STDOUT, env=env,

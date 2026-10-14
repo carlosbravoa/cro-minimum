@@ -8,7 +8,7 @@
 //   lrb_coordinator [--browser=PATH] [--profiles-dir=DIR] [--socket=PATH]
 //                   [--moderate-percent=N] [--critical-percent=N] [--verbose]
 //                   [--adblock-setting=full|lean|off] [--adblock-file=PATH]
-//                   [--no-confine] [--picker=PATH] [URL] [-- BROWSER_ARGS...]
+//                   [--safety-lists=on|off] [--no-confine] [--picker=PATH] [URL] [-- BROWSER_ARGS...]
 //
 // Every instance runs confined (confine.h): it reads the system's files, its
 // own profile and the settings, and nothing else of the user's; it can't
@@ -70,6 +70,13 @@
 // over a day old, the coordinator runs `lrb --lrb-update-lists` (no window)
 // to fetch the filter lists and compile it. The setting defaults to lean on
 // machines with less than 1.5 GB of RAM, full otherwise.
+//
+// Phishing and malware warnings (lrb/common/safety_list.h): windows get
+// --lrb-safety-file once $XDG_DATA_HOME/lrb/adblock/safety.adb exists. The
+// coordinator refreshes it when it starts, if over an hour old (the lists
+// change upstream twice a day), with the same updater, after the filter
+// lists; never while it runs (decided 2026-10-14). Independent of the
+// content-blocking setting; --safety-lists=off is for tests.
 //
 // Under memory pressure it discards the least recently used instance's
 // pages, never the most recently used one: one every 10 s while any budget
@@ -150,6 +157,8 @@ struct Options {
   // Given on the command line: the settings' level doesn't apply.
   bool adblock_setting_given = false;
   bool adblock_file_given = false;
+  bool safety_lists = true;
+  std::string safety_file;
   std::string data_home;
   int moderate_percent = 30;
   int critical_percent = 15;
@@ -318,6 +327,7 @@ coordinator::ConfinePolicy InstancePolicy(const Options& options,
   policy.read = {
       "/etc", "/proc", "/sys", "/run", "/var/lib/dbus",
       "/var/cache/fontconfig", DirName(options.adblock_file),
+      DirName(options.safety_file),
       xauthority.empty() ? home + "/.Xauthority" : xauthority,
       // Look and feel: GTK theme and settings, fonts, icons, cursors.
       config + "/gtk-3.0", config + "/gtk-4.0", config + "/fontconfig",
@@ -407,6 +417,8 @@ bool ParseOptions(int argc, char** argv, Options& options) {
     } else if (arg.starts_with("--adblock-file=")) {
       options.adblock_file = arg.substr(15);
       options.adblock_file_given = true;
+    } else if (arg == "--safety-lists=on" || arg == "--safety-lists=off") {
+      options.safety_lists = arg == "--safety-lists=on";
     } else if (arg == "--verbose") {
       options.verbose = true;
     } else if (arg == "--no-confine") {
@@ -451,6 +463,7 @@ bool ParseOptions(int argc, char** argv, Options& options) {
     options.adblock_file =
         data_home + "/lrb/adblock/" + options.adblock_setting + ".adb";
   }
+  options.safety_file = data_home + "/lrb/adblock/safety.adb";
   // Longer would be cut short silently (sockaddr_un), and the next start
   // couldn't find or replace the socket.
   if (options.socket_path.size() >= sizeof(sockaddr_un{}.sun_path)) {
@@ -957,6 +970,11 @@ class Coordinator {
         stat(adblock_file_.c_str(), &engine) == 0) {
       args.push_back("--lrb-adblock-file=" + adblock_file_);
     }
+    struct stat safety = {};
+    if (options_.safety_lists &&
+        stat(options_.safety_file.c_str(), &safety) == 0) {
+      args.push_back("--lrb-safety-file=" + options_.safety_file);
+    }
     for (const std::string& arg : options_.browser_args) {
       args.push_back(arg);
     }
@@ -1149,11 +1167,22 @@ class Coordinator {
   }
 
   // Runs the filter-list updater when the engine file is missing or older
-  // than a day; checked at most hourly, one updater at a time.
+  // than a day, checked at most hourly; then, once per start, the safety
+  // lists' (RefreshSafetyList). One updater at a time.
   void MaybeUpdateLists() {
-    if (adblock_setting_ == "off" || updater_pid_ > 0) {
+    if (updater_pid_ > 0) {
       return;
     }
+    if (adblock_setting_ != "off") {
+      MaybeUpdateFilterLists();
+    }
+    if (updater_pid_ <= 0 && !safety_list_checked_) {
+      safety_list_checked_ = true;
+      RefreshSafetyList();
+    }
+  }
+
+  void MaybeUpdateFilterLists() {
     const Clock::time_point now = Clock::now();
     if (last_update_check_ != Clock::time_point() &&
         now - last_update_check_ < std::chrono::hours(1)) {
@@ -1165,21 +1194,39 @@ class Coordinator {
         time(nullptr) - engine.st_mtime < 24 * 3600) {
       return;
     }
-    const size_t slash = adblock_file_.rfind('/');
-    const std::string dir = adblock_file_.substr(0, slash);
+    Log("updating filter lists (%s) into %s", adblock_setting_.c_str(),
+        adblock_file_.c_str());
+    RunUpdater(adblock_file_, adblock_setting_);
+  }
+
+  // The phishing and malware lists, when lrb starts, unless fetched in the
+  // last hour (a quick restart).
+  void RefreshSafetyList() {
+    struct stat engine = {};
+    if (!options_.safety_lists ||
+        (stat(options_.safety_file.c_str(), &engine) == 0 &&
+         time(nullptr) - engine.st_mtime < 3600)) {
+      return;
+    }
+    Log("updating safety lists into %s", options_.safety_file.c_str());
+    RunUpdater(options_.safety_file, "safety");
+  }
+
+  void RunUpdater(const std::string& file, const std::string& setting) {
+    const size_t slash = file.rfind('/');
+    const std::string dir = file.substr(0, slash);
     MakeDirs(dir + "/updater-profile", 0700);
     std::vector<std::string> args = {
-        options_.browser, "--lrb-update-lists=" + adblock_file_,
-        "--lrb-adblock-setting=" + adblock_setting_,
+        options_.browser, "--lrb-update-lists=" + file,
+        "--lrb-adblock-setting=" + setting,
         "--user-data-dir=" + dir + "/updater-profile"};
     for (const std::string& arg : options_.browser_args) {
       if (!arg.starts_with("--remote-debugging")) {
         args.push_back(arg);
       }
     }
-    Log("updating filter lists (%s) into %s", adblock_setting_.c_str(),
-        adblock_file_.c_str());
     updater_pid_ = Spawn(args, dir);
+    updater_lists_ = setting == "safety" ? "safety" : "filter";
   }
 
   // On a first run there is no engine file yet: wait for the updater (a few
@@ -1187,14 +1234,15 @@ class Coordinator {
   // the background while windows use the previous file.
   void WaitForFirstEngine() {
     struct stat engine = {};
-    if (updater_pid_ <= 0 || stat(adblock_file_.c_str(), &engine) == 0) {
+    if (updater_pid_ <= 0 || updater_lists_ != "filter" ||
+        stat(adblock_file_.c_str(), &engine) == 0) {
       return;
     }
     const Clock::time_point deadline = Clock::now() + std::chrono::seconds(15);
     while (Clock::now() < deadline) {
       if (waitpid(updater_pid_, nullptr, WNOHANG) == updater_pid_) {
         updater_pid_ = 0;
-        Log("filter-list update finished");
+        Log("%s-list update finished", updater_lists_.c_str());
         return;
       }
       usleep(100 * 1000);
@@ -1449,7 +1497,7 @@ class Coordinator {
       }
       if (pid == updater_pid_) {
         updater_pid_ = 0;
-        Log("filter-list update finished");
+        Log("%s-list update finished", updater_lists_.c_str());
       } else if (pid == settings_pid_) {
         settings_pid_ = 0;
         ApplyAdblockSetting();  // the user may have changed it
@@ -1478,6 +1526,8 @@ class Coordinator {
   Clock::time_point last_stuck_report_;
   Clock::time_point last_update_check_;
   pid_t updater_pid_ = 0;
+  std::string updater_lists_;  // "filter" or "safety", while it runs
+  bool safety_list_checked_ = false;
   pid_t settings_pid_ = 0;  // the settings window, while open
   // The site last launched for a user's request, until it registers.
   std::string wanted_site_;

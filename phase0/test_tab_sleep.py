@@ -63,7 +63,7 @@ def main():
     # opened quickly; the coordinator acts at most every 10 s.
     proc = subprocess.Popen(
         [f"{out}/lrb_coordinator", f"--browser={out}/lrb", f"--profiles-dir={profiles}",
-         f"--socket={work}/c.sock", "--adblock-setting=off", "--moderate-percent=101",
+         f"--socket={work}/c.sock", "--adblock-setting=off", "--safety-lists=off", "--moderate-percent=101",
          "--critical-percent=0", "--verbose", base + "shown", "--"] + LEAN_ARGS,
         stdout=open(log_path, "wb"), stderr=subprocess.STDOUT, env=env,
         start_new_session=True)

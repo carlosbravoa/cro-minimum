@@ -47,7 +47,7 @@ def main():
     # Pressure from the start, but no discard until both sites are open.
     proc = subprocess.Popen(
         [f"{out}/lrb_coordinator", f"--browser={out}/lrb", f"--profiles-dir={profiles}",
-         f"--socket={work}/c.sock", "--moderate-percent=101", "--critical-percent=0", "--adblock-setting=off",
+         f"--socket={work}/c.sock", "--moderate-percent=101", "--critical-percent=0", "--adblock-setting=off", "--safety-lists=off",
          "https://github.com/chromium/chromium", "--"] + LEAN_ARGS +
         ["--vmodule=site_window_throttle=1,lrb_content_browser_client=1"],
         stdout=log, stderr=subprocess.STDOUT, env=env, start_new_session=True)

@@ -153,7 +153,7 @@ def run_session(variant, pages, opts, out_dir, rep):
     coordinator = [f"{binary_dir}/lrb_coordinator", f"--browser={binary_dir}/lrb",
                    f"--profiles-dir={profiles}", f"--socket={sock}",
                    # Blocking changes page memory: measured separately.
-                   "--adblock-setting=off"] + VARIANTS[variant]
+                   "--adblock-setting=off", "--safety-lists=off"] + VARIANTS[variant]
     launch = list(coordinator)  # second invocations: just hand a URL over
     coordinator = coordinator + ["--verbose"]
     unit = f"lrb-session-{os.getpid()}-{time.monotonic_ns()}"

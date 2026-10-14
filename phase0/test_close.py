@@ -28,7 +28,7 @@ def main():
     github = os.path.join(profiles, "github.com")
     env = dict(os.environ, DBUS_SESSION_BUS_ADDRESS="disabled:")
     coordinator = [f"{out}/lrb_coordinator", f"--browser={out}/lrb",
-                   f"--profiles-dir={profiles}", f"--socket={work}/c.sock", "--adblock-setting=off",
+                   f"--profiles-dir={profiles}", f"--socket={work}/c.sock", "--adblock-setting=off", "--safety-lists=off",
                    "--critical-percent=101"]
     log_path = os.path.join(work, "coordinator.log")
     log = open(log_path, "wb")

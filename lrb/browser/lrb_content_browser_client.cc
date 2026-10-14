@@ -55,12 +55,14 @@
 #include "lrb/browser/shell.h"
 #include "lrb/browser/site.h"
 #include "lrb/browser/site_launcher.h"
+#include "lrb/browser/safety_throttle.h"
 #include "lrb/browser/site_window_throttle.h"
 #include "lrb/browser/ui/context_menu.h"
 #include "lrb/browser/ui/file_picker.h"
 #include "lrb/browser/ui/login_prompt.h"
 #include "lrb/browser/ui/lrb_platform_delegate.h"
 #include "lrb/common/content_blocker.h"
+#include "lrb/common/safety_list.h"
 #include "lrb/common/lrb_switches.h"
 #include "lrb/coordinator/rules.h"
 #include "net/base/features.h"
@@ -418,6 +420,10 @@ void LrbContentBrowserClient::CreateThrottlesForNavigation(
   ActivityTracker::CreateForWebContents(
       registry.GetNavigationHandle().GetWebContents(), *this);
   registry.AddThrottle(std::make_unique<SiteWindowThrottle>(registry, *this));
+  // After it: a page another site's window will open is checked there.
+  if (SafetyList::loaded()) {
+    registry.AddThrottle(std::make_unique<SafetyThrottle>(registry));
+  }
 }
 
 LrbBrowserContext* LrbContentBrowserClient::browser_context() {

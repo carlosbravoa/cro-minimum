@@ -44,6 +44,12 @@ mod ffi {
             network_only: bool,
         ) -> Vec<u8>;
 
+        /// Compiles the phishing and malware lists into an engine file, as
+        /// `compile_engine_file` (network rules, none trusted). A bare
+        /// hostname line ("evil.example") is a rule for that host and its
+        /// subdomains, pages included, as uBlock Origin reads it.
+        fn compile_safety_file(lists: &Vec<String>) -> Vec<u8>;
+
         /// A user stylesheet hiding the elements the cosmetic rules for
         /// `url`'s site match (one rule per selector, so an invalid
         /// selector can't void the others). Empty if none.
@@ -114,6 +120,47 @@ fn compile_engine_file(lists: &Vec<String>, trusted: &Vec<bool>, network_only: b
         };
         set.add_filter_list(list.clone(), opts);
     }
+    engine_file(set)
+}
+
+fn compile_safety_file(lists: &Vec<String>) -> Vec<u8> {
+    let mut set = adblock::lists::FilterSet::new(false);
+    for list in lists {
+        let opts = adblock::lists::ParseOptions {
+            rule_types: adblock::lists::RuleTypes::NetworkOnly,
+            ..Default::default()
+        };
+        set.add_filter_list(bare_hostnames_as_rules(list), opts);
+    }
+    engine_file(set)
+}
+
+/// The phishing list gives half its entries as bare hostnames, which
+/// adblock-rust reads as text to find anywhere in an address, and never
+/// for pages. uBlock Origin reads them as `||host^` for every request.
+fn bare_hostnames_as_rules(list: &str) -> String {
+    let mut out = String::with_capacity(list.len() + list.len() / 4);
+    for line in list.lines() {
+        let line = line.trim();
+        let bare = line.contains('.')
+            && !line.starts_with('.')
+            && line
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-' || b == b'_');
+        if bare {
+            out.push_str("||");
+            out.push_str(&line.to_ascii_lowercase());
+            out.push_str("^$all");
+        } else {
+            out.push_str(line);
+        }
+        out.push('\n');
+    }
+    out
+}
+
+/// Serializes `set`'s engine into lrb's container.
+fn engine_file(set: adblock::lists::FilterSet) -> Vec<u8> {
     let dat = adblock::Engine::new_with_filter_set(set).serialize();
     // The engine data after adblock-rust's header must be 8-byte aligned in
     // a page-aligned mapping.

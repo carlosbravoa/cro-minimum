@@ -10,6 +10,7 @@
 #include "base/functional/callback_helpers.h"
 #include "base/memory/ref_counted_memory.h"
 #include "base/run_loop.h"
+#include "base/strings/string_split.h"
 #include "components/performance_manager/embedder/graph_features.h"
 #include "components/performance_manager/embedder/performance_manager_lifetime.h"
 #include "device/bluetooth/bluetooth_adapter_factory.h"
@@ -101,10 +102,17 @@ void LrbBrowserMainParts::OpenFirstWindow() {
   }
   if (command_line.HasSwitch(switches::kUpdateLists)) {
     // The filter-list updater: no window; exits when done.
+    const std::string setting =
+        command_line.GetSwitchValueASCII(switches::kAdblockSetting);
     list_updater_ = std::make_unique<ListUpdater>(
         browser_context_.get(),
         command_line.GetSwitchValuePath(switches::kUpdateLists),
-        command_line.GetSwitchValueASCII(switches::kAdblockSetting) == "lean",
+        setting == "safety" ? ListUpdater::Lists::kSafety
+        : setting == "lean" ? ListUpdater::Lists::kLean
+                            : ListUpdater::Lists::kFull,
+        base::SplitString(command_line.GetSwitchValueASCII(switches::kListUrls),
+                          ",", base::TRIM_WHITESPACE,
+                          base::SPLIT_WANT_NONEMPTY),
         base::BindOnce(&Shell::Shutdown));
     list_updater_->Start();
     return;

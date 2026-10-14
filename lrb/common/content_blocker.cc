@@ -66,40 +66,39 @@ const char* RequestType(network::mojom::RequestDestination destination) {
 
 }  // namespace
 
-// static
-bool ContentBlocker::Load(const base::FilePath& given_path) {
+const adblock::Engine* LoadEngineFile(const base::FilePath& given_path,
+                                      bool with_resources) {
   // base::File refuses paths with "..".
   const base::FilePath path = base::MakeAbsoluteFilePath(given_path);
   auto file = std::make_unique<base::MemoryMappedFile>();
   if (!file->Initialize(path)) {
-    LOG(WARNING) << "lrb: no content blocking: can't map " << path;
-    return false;
+    LOG(WARNING) << "lrb: can't map " << path;
+    return nullptr;
   }
   base::span<const uint8_t> bytes = file->bytes();
   if (bytes.size() < 16 || bytes.first<8>() != base::as_byte_span(kMagic)) {
-    LOG(WARNING) << "lrb: no content blocking: " << path
-                 << " isn't an lrb engine file";
-    return false;
+    LOG(WARNING) << "lrb: " << path << " isn't an lrb engine file";
+    return nullptr;
   }
   const uint64_t offset =
       base::U64FromLittleEndian(bytes.subspan<8, 8>());
   if (offset >= bytes.size()) {
-    LOG(WARNING) << "lrb: no content blocking: corrupt " << path;
-    return false;
+    LOG(WARNING) << "lrb: corrupt " << path;
+    return nullptr;
   }
   base::span<const uint8_t> data = bytes.subspan(static_cast<size_t>(offset));
   // SAFETY: `file` is never unmapped (released below).
   rust::Box<adblock::Engine> engine = adblock::load_engine(
       rust::Slice<const uint8_t>(data.data(), data.size()));
   if (!engine->ok()) {
-    LOG(WARNING) << "lrb: no content blocking: " << path << ": "
-                 << std::string(engine->error());
-    return false;
+    LOG(WARNING) << "lrb: " << path << ": " << std::string(engine->error());
+    return nullptr;
   }
   // Surrogates for $redirect rules (ListUpdater writes them next to the
   // engine). Small: ~50 scripts and images.
   std::string resources;
-  if (base::ReadFileToString(
+  if (with_resources &&
+      base::ReadFileToString(
           path.AddExtension(FILE_PATH_LITERAL("resources.json")), &resources) &&
       !engine->use_resources_json(rust::Str(resources.data(), resources.size()))) {
     LOG(WARNING) << "lrb: content blocking without surrogates: unreadable "
@@ -108,7 +107,17 @@ bool ContentBlocker::Load(const base::FilePath& given_path) {
   // Both live for the rest of the process: the engine reads its rules from
   // the mapping.
   std::ignore = file.release();
-  g_engine.store(engine.into_raw(), std::memory_order_release);
+  return engine.into_raw();
+}
+
+// static
+bool ContentBlocker::Load(const base::FilePath& path) {
+  const adblock::Engine* engine = LoadEngineFile(path, /*with_resources=*/true);
+  if (!engine) {
+    LOG(WARNING) << "lrb: no content blocking";
+    return false;
+  }
+  g_engine.store(engine, std::memory_order_release);
   VLOG(1) << "lrb: content blocking with " << path;
   return true;
 }

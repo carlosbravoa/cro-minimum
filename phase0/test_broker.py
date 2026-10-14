@@ -93,7 +93,7 @@ def main():
     coordinator = subprocess.Popen(
         [f"{out}/lrb_coordinator", f"--browser={out}/lrb", f"--picker={picker}",
          f"--profiles-dir={profiles}", f"--socket={work}/c.sock",
-         "--adblock-setting=off", url, "--"] + LEAN_ARGS,
+         "--adblock-setting=off", "--safety-lists=off", url, "--"] + LEAN_ARGS,
         stdout=log, stderr=subprocess.STDOUT, env=env, start_new_session=True)
     try:
         site = wait_for(lambda: "127.0.0.1" in instances(profiles), 30)

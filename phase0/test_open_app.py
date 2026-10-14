@@ -68,7 +68,7 @@ def main():
         log = subprocess.run(
             [f"{out}/lrb_coordinator", "--verbose", "--no-confine", f"--browser={instance}",
              f"--profiles-dir={work}/profiles", f"--socket={sock}",
-             "--adblock-setting=off", "https://example.com/"],
+             "--adblock-setting=off", "--safety-lists=off", "https://example.com/"],
             env=env, capture_output=True, text=True, timeout=30).stderr
     finally:
         if os.path.exists(sock):

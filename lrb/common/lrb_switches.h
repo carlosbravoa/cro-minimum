@@ -23,13 +23,22 @@ inline constexpr char kCoordinator[] = "lrb-coordinator";
 // serialized engine). Without it, nothing is blocked.
 inline constexpr char kAdblockFile[] = "lrb-adblock-file";
 
+// The phishing and malware lists' engine file (SafetyList). Without it,
+// nothing is warned about.
+inline constexpr char kSafetyFile[] = "lrb-safety-file";
+
 // Run as the filter-list updater (ListUpdater) instead of a browser: fetch
 // the lists, write the engine file at this path, exit.
 inline constexpr char kUpdateLists[] = "lrb-update-lists";
 
 // With kUpdateLists: "full" (default) or "lean" (network rules of the main
-// lists only, for small machines).
+// lists only, for small machines), or "safety" (the phishing and malware
+// lists, for kSafetyFile).
 inline constexpr char kAdblockSetting[] = "lrb-adblock-setting";
+
+// With kUpdateLists, for tests: the lists to fetch, comma-separated, in
+// place of the setting's.
+inline constexpr char kListUrls[] = "lrb-list-urls";
 
 // This instance's profile (the same switch content_shell reads).
 inline constexpr char kUserDataDir[] = "user-data-dir";

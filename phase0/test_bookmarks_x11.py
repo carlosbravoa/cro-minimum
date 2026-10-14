@@ -85,7 +85,7 @@ def main():
     coordinator = subprocess.Popen(
         [f"{out}/lrb_coordinator", f"--browser={out}/lrb", "--verbose",
          f"--profiles-dir={profiles}", f"--socket={work}/c.sock",
-         "--adblock-setting=off", base + "a", "--"] +
+         "--adblock-setting=off", "--safety-lists=off", base + "a", "--"] +
         [a for a in LEAN_ARGS if not a.startswith("--ozone-platform")]
         + ["--ozone-platform=x11"],
         stdout=log, stderr=subprocess.STDOUT, env=env, start_new_session=True)

@@ -80,7 +80,7 @@ def main():
     profiles = os.path.join(work, "sites")
     sock = os.path.join(work, "c.sock")
     coordinator = [f"{out}/lrb_coordinator", f"--browser={out}/lrb",
-                   f"--profiles-dir={profiles}", f"--socket={sock}", "--adblock-setting=off"]
+                   f"--profiles-dir={profiles}", f"--socket={sock}", "--adblock-setting=off", "--safety-lists=off"]
     env = dict(os.environ, DBUS_SESSION_BUS_ADDRESS="disabled:")
     log = open(os.path.join(work, "coordinator.log"), "wb")
     failures = 0

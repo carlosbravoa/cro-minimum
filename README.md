@@ -131,6 +131,13 @@ and without the GPU. More numbers, and how to reproduce them:
 - No permission without the user saying yes. Camera, microphone and
   clipboard reading are asked about in the window and remembered per site.
   Everything else is refused.
+- Pages and downloads on public lists of phishing sites and malware
+  (malware-filter's, from OpenPhish, PhishTank and URLhaus, and uBlock
+  Origin's badware list) are stopped before anything is fetched from them,
+  with Back and Continue anyway. The lists are checked on your machine, so
+  no address you visit is sent anywhere, and refreshed each time lrb starts
+  (if over an hour old), never while it runs. They catch less than Google
+  Safe Browsing, which lrb doesn't use. About 0.85 MB per site window.
 - Downloads always ask where to save.
 - No remote-debugging server unless explicitly asked for.
 - Origin trials use Chromium's production key.

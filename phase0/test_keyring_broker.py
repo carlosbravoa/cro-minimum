@@ -99,7 +99,7 @@ def main():
     try:
         subprocess.run([f"{out}/lrb_coordinator", "--no-confine", f"--browser={instance}",
                         f"--keyring={keyring}", f"--profiles-dir={profiles}",
-                        f"--socket={sock}", "--adblock-setting=off",
+                        f"--socket={sock}", "--adblock-setting=off", "--safety-lists=off",
                         "https://www.example.com/"],
                        env=env, capture_output=True, timeout=30)
     finally:

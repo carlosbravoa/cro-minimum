@@ -31,6 +31,7 @@
 #include "lrb/browser/lrb_browser_context.h"
 #include "lrb/browser/lrb_content_browser_client.h"
 #include "lrb/common/content_blocker.h"
+#include "lrb/common/safety_list.h"
 #include "lrb/common/lrb_content_client.h"
 #include "lrb/common/lrb_switches.h"
 #include "lrb/common/settings.h"
@@ -207,6 +208,9 @@ std::optional<int> LrbMainDelegate::BasicStartupComplete() {
         base::PathExists(profile.Append(lrb::kBlockingOffFile))) {
       ContentBlocker::SetEnabled(false);
     }
+  }
+  if (command_line.HasSwitch(lrb::switches::kSafetyFile)) {
+    SafetyList::Load(command_line.GetSwitchValuePath(lrb::switches::kSafetyFile));
   }
   return std::nullopt;
 }

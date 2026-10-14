@@ -52,7 +52,15 @@ fixed budget. Targets: 2 GB x86-64 laptops (primary) and a 1 GB Raspberry Pi
    lists: surrogates, cosmetic rules, scriptlets), so blocking stays as
    invisible to sites as the community lists keep it. The compiled engine
    is one read-only file shared by every instance: 0.8 MB private per
-   instance.
+   instance. Phishing and malware warnings (in place of Safe Browsing,
+   decided 2026-10-14) use the same engine on public lists of phishing
+   pages and malware downloads (malware-filter, uBlock Origin's badware),
+   compiled into a file of their own so turning blocking off never turns
+   them off: a listed page or download is held before its request
+   (`lrb/browser/safety_throttle.h`), with Back and Continue anyway. The
+   coordinator refreshes the lists when it starts, never while it runs.
+   0.85 MB private per instance; nothing about the pages visited leaves
+   the machine.
 9. **Window UI:** a slim native (Views) bar with back, forward, reload, a
    site chip in the site's colour with the path beside it (click to edit),
    a blocked-request count and a menu; a second thin row for tabs with two
@@ -88,6 +96,7 @@ fixed budget. Targets: 2 GB x86-64 laptops (primary) and a 1 GB Raspberry Pi
 | One page crashing others | Only its renderer dies | Only its window's instance dies |
 | A site learning which other sites you use | History and bookmarks in the browser process, out of renderers' reach | **Readable by any instance** through the coordinator (address-bar suggestions, the bookmarks menu; decided 2026-10-08): the sites visited and bookmarks, not what was done there. An instance can add or remove bookmarks of its own site only |
 | A hijacked page opening other apps (`mailto:`, `tel:`, meeting links) | Asked in the browser process, out of the renderer's reach | **Asked in the site's instance**, which a hijacked page could skip; the coordinator lets through only links for apps (never web pages or files, `rules.h`), one every 2 s (`lrb/coordinator/coordinator.cc`, OpenInApp) |
+| A phishing page or a malware download | Google Safe Browsing: lists on the device, refreshed every 30 minutes, and a check with Google for addresses that match | **Public lists, checked on the device** (malware-filter's phishing and URLhaus lists, uBlock Origin's badware), refreshed when lrb starts: fewer pages caught, and new ones only from the next start. Warned in the site's instance, as certificate errors are |
 | A site reading saved passwords and autofill details | In the browser process; filled in by it | **In the desktop's keyring**, through the coordinator (`lrb/coordinator/keyring_broker.h`): an instance gets passwords of its own site only (from the profile the coordinator gave it), never others'. Autofill details (name, address, email, phone) are shared by every site: a hijacked instance can read them without asking (decided 2026-10-14) |
 
 The remaining exposure is third-party frames inside a site's own window.
