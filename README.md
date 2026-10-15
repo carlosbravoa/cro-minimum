@@ -215,8 +215,9 @@ On purpose, for memory or safety:
   present your screen (camera and microphone work, after asking).
 - **Translation:** it would send pages' text to an online service.
 - **Automatic updates:** new releases, with Chromium's security fixes,
-  are installed by hand (see Download).
+  are installed by hand (see [Download](#download)).
 
+## Download
 
 Pre-releases for 64-bit x86 and ARM Linux (a Raspberry Pi with the 64-bit
 OS) are on the [releases page](https://github.com/carlosbravoa/low-ram-browser/releases).
