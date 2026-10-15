@@ -12,7 +12,7 @@ memory, so the browser must react to pressure as it happens, not only fit a
 fixed budget. Targets: 2 GB x86-64 laptops (primary) and a 1 GB Raspberry Pi
 (arm64).
 
-## Decisions
+## How it works
 
 1. **`//content`, not `//chrome`.** The Chrome product layer (sync,
    extensions, Safe Browsing, profile services) costs about 70 MB of
@@ -52,11 +52,11 @@ fixed budget. Targets: 2 GB x86-64 laptops (primary) and a 1 GB Raspberry Pi
    lists: surrogates, cosmetic rules, scriptlets), so blocking stays as
    invisible to sites as the community lists keep it. The compiled engine
    is one read-only file shared by every instance: 0.8 MB private per
-   instance. Phishing and malware warnings (in place of Safe Browsing,
-   decided 2026-10-14) use the same engine on public lists of phishing
-   pages and malware downloads (malware-filter, uBlock Origin's badware),
-   compiled into a file of their own so turning blocking off never turns
-   them off: a listed page or download is held before its request
+   instance. Phishing and malware warnings (in place of Safe Browsing)
+   use the same engine on public lists of phishing pages and malware
+   downloads (malware-filter, uBlock Origin's badware), compiled into a
+   file of their own so turning blocking off never turns them off: a
+   listed page or download is held before its request
    (`lrb/browser/safety_throttle.h`), with Back and Continue anyway. The
    coordinator refreshes the lists when it starts, never while it runs.
    0.85 MB private per instance; nothing about the pages visited leaves
@@ -94,10 +94,10 @@ fixed budget. Targets: 2 GB x86-64 laptops (primary) and a 1 GB Raspberry Pi
 | A hijacked page reaching your files and system | Per-renderer sandbox | Whole-instance OS confinement (Landlock, seccomp, no_new_privs; `lrb/coordinator/confine.h`) and the V8 sandbox. The user's files reach it only through the coordinator's file picker (`broker.h`) |
 | Third-party content (ads, embeds) inside a page | Cross-site iframes in their own process | **Shares the page's process**: a malicious ad on a site can reach that site's data. Mitigated by content blocking |
 | One page crashing others | Only its renderer dies | Only its window's instance dies |
-| A site learning which other sites you use | History and bookmarks in the browser process, out of renderers' reach | **Readable by any instance** through the coordinator (address-bar suggestions, the bookmarks menu; decided 2026-10-08): the sites visited and bookmarks, not what was done there. An instance can add or remove bookmarks of its own site only |
+| A site learning which other sites you use | History and bookmarks in the browser process, out of renderers' reach | **Readable by any instance** through the coordinator (address-bar suggestions, the bookmarks menu): the sites visited and bookmarks, not what was done there. An instance can add or remove bookmarks of its own site only |
 | A hijacked page opening other apps (`mailto:`, `tel:`, meeting links) | Asked in the browser process, out of the renderer's reach | **Asked in the site's instance**, which a hijacked page could skip; the coordinator lets through only links for apps (never web pages or files, `rules.h`), one every 2 s (`lrb/coordinator/coordinator.cc`, OpenInApp) |
 | A phishing page or a malware download | Google Safe Browsing: lists on the device, refreshed every 30 minutes, and a check with Google for addresses that match | **Public lists, checked on the device** (malware-filter's phishing and URLhaus lists, uBlock Origin's badware), refreshed when lrb starts: fewer pages caught, and new ones only from the next start. Warned in the site's instance, as certificate errors are |
-| A site reading saved passwords and autofill details | In the browser process; filled in by it | **In the desktop's keyring**, through the coordinator (`lrb/coordinator/keyring_broker.h`): an instance gets passwords of its own site only (from the profile the coordinator gave it), never others'. Autofill details (name, address, email, phone) are shared by every site: a hijacked instance can read them without asking (decided 2026-10-14) |
+| A site reading saved passwords and autofill details | In the browser process; filled in by it | **In the desktop's keyring**, through the coordinator (`lrb/coordinator/keyring_broker.h`): an instance gets passwords of its own site only (from the profile the coordinator gave it), never others'. Autofill details (name, address, email, phone) are shared by every site: a hijacked instance can read them without asking |
 
 The remaining exposure is third-party frames inside a site's own window.
 Banks and email providers carry few, and content blocking removes most of
@@ -116,15 +116,3 @@ Printing is compiled in for Print to PDF only (`enable_printing`, no print
 preview or CUPS; `lrb/browser/print.h`): a page's `window.print()` reaches
 Chromium's printing code in the renderer (PrintRenderFrameHelper, Skia's
 PDF backend), as in Chrome.
-
-## Notes
-
-- Chromium registers itself as a systemd scope over the session D-Bus,
-  leaving the cgroup that launched it. The harness disables the session bus
-  for measurements.
-- A profile on tmpfs turns disk caches into RAM (50-100 MB). Profiles live
-  on disk.
-
-## Open questions
-
-- Packaging: a tarball and a .deb first; a snap later.

@@ -1,5 +1,5 @@
 """Check that background tabs sleep under memory pressure, before anything
-closes (decided 2026-10-05: tabs stay live; pressure sleeps them).
+closes (tabs stay live; pressure sleeps them).
 
   python3 test_tab_sleep.py <dir with lrb and lrb_coordinator>
 

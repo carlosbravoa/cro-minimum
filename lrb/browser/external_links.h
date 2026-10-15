@@ -13,9 +13,9 @@ class WebContents;
 
 namespace lrb {
 
-// Links for other apps: mailto:, tel:, zoommtg:, magnet: and the like
-// (decided 2026-10-14). content_shell dropped them, so "email us" and "join
-// meeting" did nothing. The window asks first ("Open ... in another
+// Links for other apps: mailto:, tel:, zoommtg:, magnet: and the like.
+// content_shell dropped them, so "email us" and "join meeting" did
+// nothing. The window asks first ("Open ... in another
 // app?"), as Chrome does; then the coordinator hands the link to the
 // desktop (xdg-open): a confined instance can't start programs. Run on its
 // own, without a coordinator, lrb runs xdg-open itself.

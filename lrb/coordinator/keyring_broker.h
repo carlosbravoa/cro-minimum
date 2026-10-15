@@ -15,7 +15,7 @@
 namespace lrb::coordinator {
 
 // Saved passwords and autofill details for instances, in the desktop's
-// keyring through lrb_keyring (keyring.cc), decided 2026-10-14. Out of
+// keyring through lrb_keyring (keyring.cc). Out of
 // every site's process: an instance gets only what it asks for, and only
 // what the rules below allow.
 //

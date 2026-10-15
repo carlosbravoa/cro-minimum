@@ -49,7 +49,7 @@ class SettingsView : public views::View {
         ->set_cross_axis_alignment(
             views::BoxLayout::CrossAxisAlignment::kStretch);
     if (first_start) {
-      // The first start on a machine with a GPU (decided 2026-10-05): show
+      // The first start on a machine with a GPU: show
       // the trade-off and ask; changeable later here.
       Heading(u"Welcome to lrb");
       Note(u"This computer has a graphics chip (GPU). lrb can draw pages "

@@ -75,7 +75,7 @@
 // --lrb-safety-file once $XDG_DATA_HOME/lrb/adblock/safety.adb exists. The
 // coordinator refreshes it when it starts, if over an hour old (the lists
 // change upstream twice a day), with the same updater, after the filter
-// lists; never while it runs (decided 2026-10-14). Independent of the
+// lists; never while it runs. Independent of the
 // content-blocking setting; --safety-lists=off is for tests.
 //
 // Under memory pressure it discards the least recently used instance's
@@ -438,7 +438,7 @@ bool ParseOptions(int argc, char** argv, Options& options) {
       return false;
     }
   }
-  // Native Wayland windows on a Wayland desktop (decided 2026-10-14):
+  // Native Wayland windows on a Wayland desktop:
   // through Xwayland, without GTK (use_gtk = false), Chromium's X11 backend
   // composes no dead keys and reaches no input method, so á, ü and the
   // like couldn't be typed. Ozone Wayland composes with xkbcommon and talks
@@ -1250,7 +1250,7 @@ class Coordinator {
     Log("filter lists not ready after 15 s; first window without blocking");
   }
 
-  // The first start on a machine with a GPU (decided 2026-10-05): before the
+  // The first start on a machine with a GPU: before the
   // first window, the settings window asks whether to use it, with its
   // memory cost. Asked until answered. Not without a display, nor for
   // headless runs (tests, the harness).

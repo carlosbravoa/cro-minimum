@@ -21,7 +21,7 @@ namespace lrb {
 
 class SitePermissions;
 
-// No site gets a permission the user hasn't given (decided 2026-10-04).
+// No site gets a permission the user hasn't given.
 // content_shell's manager granted location, sensors, ... to every site
 // without asking.
 //

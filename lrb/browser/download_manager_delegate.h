@@ -20,8 +20,8 @@ class BrowserContext;
 
 namespace lrb {
 
-// Downloads ask where to save, with the system file picker (decided
-// 2026-10-04), suggesting the Downloads folder and the file's name. With
+// Downloads ask where to save, with the system file picker,
+// suggesting the Downloads folder and the file's name. With
 // no picker to ask (no session bus or portal: a kiosk, a bare Pi), they go
 // to the Downloads folder under a free name, and the bar says where.
 // content_shell cancelled every download on Linux. Progress shows in the

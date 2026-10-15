@@ -2,7 +2,7 @@
 
   python3 test_permissions.py <path to lrb or content_shell>
 
-Decided 2026-10-04: deny by default; content_shell granted location,
+Deny by default; content_shell granted location,
 clipboard reading, notifications, MIDI, ... silently. Asks the way a page
 would, on a real https page (a secure context), and checks the answers:
 nothing granted; what lrb asks the user about (camera, microphone,

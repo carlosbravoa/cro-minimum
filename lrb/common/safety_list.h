@@ -11,11 +11,11 @@ class GURL;
 
 namespace lrb {
 
-// Phishing and malware warnings (decided 2026-10-14, in place of Google
-// Safe Browsing): public lists of phishing pages and malware downloads
-// (malware-filter's phishing and URLhaus lists, uBlock Origin's badware),
-// compiled into an engine file of their own, apart from the ad lists, so
-// turning blocking off doesn't turn these off. The coordinator fetches them
+// Phishing and malware warnings (in place of Google Safe Browsing): public
+// lists of phishing pages and malware downloads (malware-filter's phishing
+// and URLhaus lists, uBlock Origin's badware), compiled into an engine file
+// of their own, apart from the ad lists, so turning blocking off doesn't
+// turn these off. The coordinator fetches them
 // when lrb starts, never while it runs. Shared by every instance like the
 // ad engine: ~0.85 MB of each instance's memory.
 class SafetyList {

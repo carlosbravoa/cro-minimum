@@ -56,7 +56,7 @@ class WindowView;
 // tabs. Shell (a page) reports to it. Started from content_shell's
 // ShellPlatformDelegate and its Views implementation.
 //
-// Tabs (decided 2026-10-05): a window shows one of its tabs. A live tab is a
+// Tabs: a window shows one of its tabs. A live tab is a
 // Shell (its page). A tab opened in the background, or restored but not
 // shown yet, is only its address (and saved history): it loads when first
 // shown. New pages of the site become tabs of the most recently used
@@ -266,7 +266,7 @@ class LrbPlatformDelegate : public views::WidgetObserver {
   // address.
   void LoadTab(content::BrowserContext* context, const TabState& tab);
 
-  // The site's memory in the window titles (decided 2026-10-14): the site
+  // The site's memory in the window titles: the site
   // is this one process, so its PSS is what the site costs, as the README's
   // table counts it. Read every few seconds off the UI thread; titles change
   // only when the whole-MB figure does.

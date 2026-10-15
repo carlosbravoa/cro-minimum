@@ -16,7 +16,7 @@ class WebContents;
 
 namespace lrb {
 
-// A page whose certificate isn't valid (decided 2026-10-14, Chrome's rule).
+// A page whose certificate isn't valid (Chrome's rule).
 // content_shell refused it with a bare error code. Now the window says what
 // is wrong ("example.com's certificate has expired ...") and offers Back
 // and Continue anyway, except on sites that require valid HTTPS (HSTS:

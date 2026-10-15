@@ -14,9 +14,9 @@ class RenderFrameHost;
 
 namespace lrb {
 
-// Saved passwords and autofill details for a page (decided 2026-10-14),
-// what the page's forms (lrb/renderer/forms_agent.h) report and ask for.
-// Every step is a question in the window, never silent:
+// Saved passwords and autofill details for a page: what the page's forms
+// (lrb/renderer/forms_agent.h) report and ask for. Every step is a
+// question in the window, never silent:
 //
 //   - a sign-in submitted: "Save the password for alice on example.com?"
 //     (or "Update ..." if alice's is saved and differs);

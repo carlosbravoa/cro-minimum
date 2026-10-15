@@ -1,4 +1,4 @@
-"""Check tabs (decided 2026-10-05): new pages of a site open as tabs.
+"""Check tabs: new pages of a site open as tabs.
 
   python3 test_tabs_x11.py <path to lrb>
 

@@ -9,8 +9,8 @@
 #include <string_view>
 #include <vector>
 
-// Bookmarks and address-bar suggestions, kept by the coordinator (decided
-// 2026-10-08): they span sites, and a site's instance can't read other
+// Bookmarks and address-bar suggestions, kept by the coordinator: they
+// span sites, and a site's instance can't read other
 // sites' profiles. Instances ask for them over the coordinator's socket:
 //
 //   instance -> coordinator           coordinator -> instance

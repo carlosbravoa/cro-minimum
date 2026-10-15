@@ -91,7 +91,7 @@ void AddSwitchUnlessSet(base::CommandLine& command_line, const char* name) {
 // `lrb <url>` gets it. Each only when the command line doesn't say
 // otherwise.
 void ApplyDefaults(base::CommandLine& command_line) {
-  // One process per window (decided 2026-10-03): the renderer, network
+  // One process per window: the renderer, network
   // and GPU work in the browser process. --single-process alone still
   // starts two zygotes (~45 MB). Chromium's sandbox needs separate
   // renderers; in their place: the V8 sandbox, and Landlock + seccomp

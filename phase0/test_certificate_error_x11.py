@@ -14,7 +14,7 @@ same host is where the window starts. Keys go to lrb's window only.
    certificate: LrbSslHostState).
 3. Visited again: no question.
 
-By hand (NEXT.md): a site that requires HTTPS (HSTS) offers only Back, and
+By hand: a site that requires HTTPS (HSTS) offers only Back, and
 a Wi-Fi network that wants a sign-in offers "Sign in to Wi-Fi".
 """
 

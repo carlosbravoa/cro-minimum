@@ -7,7 +7,7 @@ trust that it asked (a compromised instance wouldn't), so it checks what
 it can: only links for apps, never http(s) or files, at most one every
 2 s. A stand-in instance (this script, started by the coordinator as its
 browser) sends links; a stand-in xdg-open records what reaches it. No lrb
-needed. The question in the window: by hand (NEXT.md).
+needed. The question in the window is checked by hand.
 """
 
 import os
