@@ -67,8 +67,8 @@ class LrbSslHostState : public content::SSLHostStateDelegate {
   std::map<std::string, std::set<std::pair<net::SHA256HashValue, net::Error>>>
       allowed_;
   std::set<std::pair<std::string, InsecureContentType>> insecure_content_;
-  std::set<std::string> http_allowed_;
-  std::set<std::string> https_enforced_;
+  std::set<std::string, std::less<>> http_allowed_;
+  std::set<std::string, std::less<>> https_enforced_;
 };
 
 }  // namespace lrb

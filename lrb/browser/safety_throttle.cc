@@ -27,8 +27,8 @@ namespace lrb {
 namespace {
 
 // Hosts the user chose to continue to, until this instance exits.
-std::set<std::string>& Continued() {
-  static base::NoDestructor<std::set<std::string>> hosts;
+std::set<std::string, std::less<>>& Continued() {
+  static base::NoDestructor<std::set<std::string, std::less<>>> hosts;
   return *hosts;
 }
 
@@ -87,7 +87,8 @@ content::NavigationThrottle::ThrottleCheckResult SafetyThrottle::Check() {
   question.focus = WindowView::Question::Focus::kCancel;
   question.owner = this;
   question.answer = base::BindOnce(&SafetyThrottle::OnAnswer,
-                                   weak_factory_.GetWeakPtr(), url.host());
+                                   weak_factory_.GetWeakPtr(),
+                                   std::string(url.host()));
   asked_in_ = contents->GetWeakPtr();
   view->Ask(std::move(question));
   return DEFER;

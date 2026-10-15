@@ -104,8 +104,8 @@ executable("lrb") {
     "common/safety_list.h",
     "renderer/cosmetic_filter.cc",
     "renderer/cosmetic_filter.h",
-    "renderer/forms.cc",
-    "renderer/forms.h",
+    "renderer/forms_agent.cc",
+    "renderer/forms_agent.h",
     "renderer/lrb_content_renderer_client.cc",
     "renderer/lrb_content_renderer_client.h",
   ]

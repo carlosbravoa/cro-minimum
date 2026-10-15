@@ -6,10 +6,10 @@ module lrb.mojom;
 
 import "mojo/public/mojom/base/string16.mojom";
 
-// A page's forms (lrb/renderer/forms.h) to the browser (lrb/browser/forms.h):
-// saved passwords and autofill details, kept in the desktop's keyring
-// through the coordinator and asked about in the window first. Bound for
-// the main frame only.
+// A page's forms (lrb/renderer/forms_agent.h) to the browser
+// (lrb/browser/forms.h): saved passwords and autofill details, kept in the
+// desktop's keyring through the coordinator and asked about in the window
+// first. Bound for the main frame only.
 interface Forms {
   // A sign-in was submitted (or the page left after one was typed): the
   // browser offers to save the password.

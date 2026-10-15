@@ -20,7 +20,7 @@
 #include "content/public/renderer/render_thread.h"
 #include "lrb/common/content_blocker.h"
 #include "lrb/renderer/cosmetic_filter.h"
-#include "lrb/renderer/forms.h"
+#include "lrb/renderer/forms_agent.h"
 #include "net/base/net_errors.h"
 #include "printing/buildflags/buildflags.h"
 #include "third_party/blink/public/platform/url_loader_throttle_provider.h"

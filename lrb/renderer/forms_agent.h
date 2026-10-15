@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef LRB_RENDERER_FORMS_H_
-#define LRB_RENDERER_FORMS_H_
+#ifndef LRB_RENDERER_FORMS_AGENT_H_
+#define LRB_RENDERER_FORMS_AGENT_H_
 
 #include <optional>
 #include <string>
@@ -71,4 +71,4 @@ class FormsAgent : public content::RenderFrameObserver {
 
 }  // namespace lrb
 
-#endif  // LRB_RENDERER_FORMS_H_
+#endif  // LRB_RENDERER_FORMS_AGENT_H_

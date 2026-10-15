@@ -11,6 +11,8 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <iterator>
+#include <string_view>
 #include <utility>
 
 #include "lrb/coordinator/broker.h"
@@ -164,15 +166,15 @@ void KeyringBroker::Start(Job job,
   }
   // The secret fits the pipe's buffer (64 KiB; kMaxRecord is far less), so
   // it's written before the helper runs and never blocks.
-  for (size_t done = 0; done < input.size();) {
-    const ssize_t n = write(in[1], input.data() + done, input.size() - done);
+  for (std::string_view rest = input; !rest.empty();) {
+    const ssize_t n = write(in[1], rest.data(), rest.size());
     if (n < 0 && errno == EINTR) {
       continue;
     }
     if (n <= 0) {
       break;
     }
-    done += static_cast<size_t>(n);
+    rest.remove_prefix(static_cast<size_t>(n));
   }
   close(in[1]);
   job.pid = fork();
@@ -292,12 +294,15 @@ void KeyringBroker::Finish(Job& job) {
 }
 
 void KeyringBroker::Answer(const Job& job, const std::string& rest) {
-  static const std::map<std::string, std::string> kReplies = {
+  static constexpr std::pair<std::string_view, std::string_view> kReplies[] = {
       {"pw-list", "pw-users"}, {"pw-get", "pw"},  {"pw-save", "pw-saved"},
       {"af-get", "af"},        {"af-save", "af-saved"}};
-  auto reply = kReplies.find(job.command);
-  if (job.client_fd >= 0 && reply != kReplies.end()) {
-    reply_(job.client_fd, reply->second + " " + job.id + " " + rest);
+  auto reply = std::ranges::find(kReplies, std::string_view(job.command),
+                                 &std::pair<std::string_view,
+                                            std::string_view>::first);
+  if (job.client_fd >= 0 && reply != std::end(kReplies)) {
+    reply_(job.client_fd,
+           std::string(reply->second) + " " + job.id + " " + rest);
   }
 }
 

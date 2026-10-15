@@ -37,6 +37,8 @@ namespace {
 
 using Result = content::CertificateRequestResultType;
 using Answer = base::OnceCallback<void(Result)>;
+constexpr Result kContinue = content::CERTIFICATE_REQUEST_RESULT_TYPE_CONTINUE;
+constexpr Result kDeny = content::CERTIFICATE_REQUEST_RESULT_TYPE_DENY;
 
 // Answers 204 with no content; a network that intercepts traffic answers
 // with its sign-in page (or a redirect to it) instead. Chrome's captive
@@ -117,7 +119,7 @@ void Ask(int cert_error,
   Shell* shell = contents ? Shell::FromWebContents(contents.get()) : nullptr;
   WindowView* view = shell ? LrbPlatformDelegate::ShowTabFor(shell) : nullptr;
   if (!view) {
-    std::move(answer).Run(Result::DENY);
+    std::move(answer).Run(kDeny);
     return;
   }
   const std::u16string host = base::UTF8ToUTF16(url.host());
@@ -155,10 +157,10 @@ void Ask(int cert_error,
           }
         }
         if (yes && !sign_in && !strict) {
-          std::move(answer).Run(Result::CONTINUE);
+          std::move(answer).Run(kContinue);
           return;
         }
-        std::move(answer).Run(Result::DENY);
+        std::move(answer).Run(kDeny);
         // Back: to the page before, if there is one; else the error page
         // stays.
         if (accepted.has_value() && contents &&

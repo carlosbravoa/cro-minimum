@@ -673,7 +673,7 @@ void LrbContentBrowserClient::AllowCertificateError(
     bool strict_enforcement,
     base::OnceCallback<void(content::CertificateRequestResultType)> callback) {
   if (!web_contents || !is_primary_main_frame_request) {
-    std::move(callback).Run(content::CertificateRequestResultType::DENY);
+    std::move(callback).Run(content::CERTIFICATE_REQUEST_RESULT_TYPE_DENY);
     return;
   }
   AskAboutCertificateError(web_contents, cert_error, request_url,
