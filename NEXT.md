@@ -1,9 +1,32 @@
 # Next
 
-## The next build
+## v0.1.0-alpha.5 (released 2026-10-15)
 
-Committed but not built yet (after v0.1.0-alpha.4). None of it has been
-through the compiler, so the build is its first check.
+Everything below is in v0.1.0-alpha.5 (both CPUs, `patches/0001`-`0003`).
+Building it found (fixed in 9b3b045, 8fe4c81, da419cc):
+- It didn't compile: two `forms.o` in `//lrb:lrb` (the renderer side is
+  now `forms_agent.*`), M155 API drift (`CERTIFICATE_REQUEST_RESULT_TYPE_*`,
+  `GURL::host()` is a `string_view`), and `-Werror` in the keyring broker.
+- Certificate errors: Back left the error page (DENY, then GoBack with
+  nothing committed to go back from); now CANCEL when there's a page before.
+- `test_certificate_error_x11.py` and `test_safety_warning_x11.py` could
+  never pass: DevTools answers `Page.navigate` and page commands only after
+  the held navigation ends (now `CDP.send` and the window title), and
+  adblock-rust matches no `||host/path` rule on an address with a port
+  (real lists have none; the test maps `*.lrb.test:80`).
+- Every window crashed on GNOME Wayland (NVIDIA): null discardable memory
+  allocator in single-process mode while rastering the client-side frame's
+  shadow. alpha.4 with `--ozone-platform=wayland` crashes the same way, so
+  75b2c46's "confirmed by hand" wasn't on this desktop. `patches/0003`.
+
+Checked: all 34 tests pass (x64); the x64 package from its launcher on
+GNOME Wayland, confined, GPU on and off (site window up, no crash).
+Memory against alpha.4 in one sweep (`results/raw/alpha5-sweep/`): total
+PSS within noise or lower on every page (CNN -12 MB, BBC -5 MB). The
+sweep's unreclaimable column is void: alpha.4's binary was unpacked on
+tmpfs, so its file pages counted as shmem. Not checked: everything "by
+hand" below (Wayland typing, placement, icons; passwords; certificates on
+badssl.com; links for apps), and arm64 on a Pi.
 
 | Commit | Change | Files |
 |---|---|---|
@@ -18,7 +41,7 @@ through the compiler, so the build is its first check.
 | `c3d6ca5` | Saved passwords and autofill in pages: `lrb/common/forms.mojom`; the page side (`lrb/renderer/forms.{h,cc}`: sign-in and detail fields by autocomplete tokens, reported on submit or when the page leaves by itself, filled with `SetAutofillValue` after a yes) and the window's questions (`lrb/browser/forms.{h,cc}`, `lrb/browser/keyring.{h,cc}`): save or update, fill in (several accounts: which, in the row's text field), remember details, fill in details. Every value capped to fit the coordinator's 9000-byte lines | `lrb/common/forms.mojom`, `lrb/renderer/forms.{h,cc}`, `lrb/browser/forms.{h,cc}`, `lrb/browser/keyring.{h,cc}`, `lrb/browser/lrb_content_browser_client.cc`, `lrb/renderer/lrb_content_renderer_client.cc`, `lrb/BUILD.gn`, README, `docs/design.md` |
 | `bd647bc` | Phishing and malware warnings (in place of Safe Browsing): malware-filter's phishing and URLhaus lists and uBlock Origin's badware, compiled by the updater (`--lrb-adblock-setting=safety`) into `safety.adb`, apart from the ad lists; bare hostnames become `\|\|host^$all`. A listed page, redirect or download is held before its request (`SafetyThrottle`): Back (focused) or Continue anyway, remembered per host until the instance exits. The coordinator refreshes the file once when it starts, if over an hour old, after the filter lists, never while it runs. 0.85 MB private per instance, measured with the pinned adblock-rust outside Chromium. `test_safety_lists.py` (coordinator, stand-in) and `test_confine.py` (the file readable, not writable) pass with the g++ coordinator; `test_safety_warning_x11.py` is for the build | `lrb/adblock/lib.rs`, `lrb/common/{safety_list,content_blocker}.{h,cc}`, `lrb/common/lrb_switches.h`, `lrb/browser/safety_throttle.{h,cc}`, `lrb/browser/list_updater.{h,cc}`, `lrb/browser/lrb_browser_main_parts.cc`, `lrb/browser/lrb_content_browser_client.cc`, `lrb/app/lrb_main_delegate.cc`, `lrb/coordinator/coordinator.cc`, `lrb/BUILD.gn`, `phase0/` (tests get `--safety-lists=off`), README, `docs/design.md`, THIRD_PARTY.md |
 
-Check before releasing:
+Still to check by hand:
 
 1. It compiles.
 2. `phase0/run_tests.sh` on the build: `test_persistence.py` passes (it
