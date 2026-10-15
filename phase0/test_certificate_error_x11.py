@@ -116,16 +116,19 @@ def main():
         time.sleep(1)
 
         # The probe for a Wi-Fi sign-in takes up to 3 s before the question.
-        client.call("Page.navigate", {"url": bad_url}, session)
+        # DevTools holds page commands while the navigation waits for the
+        # answer: the window's title tells which page is shown.
+        client.send("Page.navigate", {"url": bad_url}, session)
         time.sleep(4)
+        shown = x11.windows()[0][1]
         check("the page with a bad certificate doesn't load before an answer",
-              page(client, session)[0] != "bad certificate")
+              shown == "start", shown)
         keys(XK_Return)
         title, url, _ = page(client, session)
         check("Enter (focus on Back) goes back to the page before",
               title == "start" and url == start_url, f"{title} {url}")
 
-        client.call("Page.navigate", {"url": bad_url}, session)
+        client.send("Page.navigate", {"url": bad_url}, session)
         time.sleep(4)
         keys(XK_Tab, XK_space)
         title, url, image = page(client, session)
@@ -136,7 +139,7 @@ def main():
 
         client.call("Page.navigate", {"url": start_url}, session)
         runlib.wait_ready(client, session, start_url, 10)
-        client.call("Page.navigate", {"url": bad_url}, session)
+        client.send("Page.navigate", {"url": bad_url}, session)
         title, _, _ = page(client, session)
         check("visited again, it loads without a question", title == "bad certificate",
               title)

@@ -17,6 +17,7 @@
 #include "base/time/time.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/navigation_controller.h"
+#include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/storage_partition.h"
 #include "content/public/browser/web_contents.h"
 #include "lrb/browser/lrb_content_browser_client.h"
@@ -37,6 +38,7 @@ namespace {
 
 using Result = content::CertificateRequestResultType;
 using Answer = base::OnceCallback<void(Result)>;
+constexpr Result kCancel = content::CERTIFICATE_REQUEST_RESULT_TYPE_CANCEL;
 constexpr Result kContinue = content::CERTIFICATE_REQUEST_RESULT_TYPE_CONTINUE;
 constexpr Result kDeny = content::CERTIFICATE_REQUEST_RESULT_TYPE_DENY;
 
@@ -160,13 +162,16 @@ void Ask(int cert_error,
           std::move(answer).Run(kContinue);
           return;
         }
-        std::move(answer).Run(kDeny);
-        // Back: to the page before, if there is one; else the error page
-        // stays.
-        if (accepted.has_value() && contents &&
-            contents->GetController().CanGoBack()) {
-          contents->GetController().GoBack();
-        }
+        // Back: the page before stays (the bad page never committed, so
+        // there is nothing to go back from). A window with none shows the
+        // error page instead of being left blank.
+        content::NavigationEntry* shown =
+            contents ? contents->GetController().GetLastCommittedEntry()
+                     : nullptr;
+        std::move(answer).Run(accepted.has_value() && shown &&
+                                      !shown->IsInitialEntry()
+                                  ? kCancel
+                                  : kDeny);
       },
       sign_in, strict, contents, std::move(answer));
   view->Ask(std::move(question));

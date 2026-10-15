@@ -114,12 +114,18 @@ class CDP:
         self.keep_events = False
         self.events = []
 
-    def call(self, method, params=None, session_id=None):
+    def send(self, method, params=None, session_id=None):
+        """Sends a command without waiting for its reply (dropped when it
+        comes): for a navigation held by a question in the window, which
+        Page.navigate answers only once it commits or fails."""
         self.next_id += 1
         msg = {"id": self.next_id, "method": method, "params": params or {}}
         if session_id:
             msg["sessionId"] = session_id
         self.ws.send(json.dumps(msg))
+
+    def call(self, method, params=None, session_id=None):
+        self.send(method, params, session_id)
         while True:
             reply = json.loads(self.ws.recv())
             if reply.get("id") != self.next_id:

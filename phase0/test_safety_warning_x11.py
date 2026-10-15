@@ -51,7 +51,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         if self.path == "/go":
             self.send_response(302)
-            self.send_header("Location", f"http://phish2.lrb.test:{self.server.server_port}/")
+            self.send_header("Location", "http://phish2.lrb.test/")
             self.end_headers()
             return
         if self.path.endswith(".exe"):
@@ -75,8 +75,8 @@ def main():
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     port = server.server_address[1]
-    start_url = f"http://www.lrb.test:{port}/"
-    phish_url = f"http://phish.lrb.test:{port}/"
+    start_url = "http://www.lrb.test/"
+    phish_url = "http://phish.lrb.test/"
     engine = os.path.join(work, "safety.adb")
     env = dict(os.environ, DBUS_SESSION_BUS_ADDRESS="disabled:")
     failures = 0
@@ -98,7 +98,7 @@ def main():
     log = os.path.join(work, "log")
     proc = subprocess.Popen(
         [binary, f"--user-data-dir={work}/profile", "--lrb-site=lrb.test",
-         f"--lrb-safety-file={engine}", "--host-resolver-rules=MAP *.lrb.test 127.0.0.1",
+         f"--lrb-safety-file={engine}", f"--host-resolver-rules=MAP *.lrb.test:80 127.0.0.1:{port}",
          "--ozone-platform=x11", "--remote-debugging-port=0", "--single-process",
          "--no-zygote", "--no-sandbox", start_url],
         stdout=open(log, "wb"), stderr=subprocess.STDOUT, env=env,
@@ -117,6 +117,12 @@ def main():
         except cdplib.CDPError:
             return None
 
+    def window_title():
+        """The shown page's title while a question holds a navigation (and
+        DevTools with it)."""
+        time.sleep(2)
+        return x11.windows()[0][1]
+
     def asked_for(host, path="/"):
         return (host, path) in REQUESTS
 
@@ -127,8 +133,8 @@ def main():
         client.call("Emulation.setFocusEmulationEnabled", {"enabled": True}, session)
         time.sleep(1)
 
-        client.call("Page.navigate", {"url": phish_url}, session)
-        shown = title(client, session)
+        client.send("Page.navigate", {"url": phish_url}, session)
+        shown = window_title()
         check("a listed page doesn't load before an answer", shown == "www.lrb.test", shown)
         check("...and nothing is fetched from it", not asked_for("phish.lrb.test"))
         keys(XK_Return)
@@ -136,7 +142,7 @@ def main():
         check("Enter (focus on Back) stays on the page before",
               shown == "www.lrb.test" and not asked_for("phish.lrb.test"), shown)
 
-        client.call("Page.navigate", {"url": phish_url}, session)
+        client.send("Page.navigate", {"url": phish_url}, session)
         time.sleep(2)
         keys(XK_Tab, XK_space)
         shown = title(client, session)
@@ -144,19 +150,19 @@ def main():
 
         client.call("Page.navigate", {"url": start_url}, session)
         runlib.wait_ready(client, session, start_url, 10)
-        client.call("Page.navigate", {"url": phish_url}, session)
+        client.send("Page.navigate", {"url": phish_url}, session)
         shown = title(client, session)
         check("visited again, it loads without a question", shown == "phish.lrb.test", shown)
 
         client.call("Page.navigate", {"url": start_url}, session)
         runlib.wait_ready(client, session, start_url, 10)
-        client.call("Page.navigate", {"url": start_url + "go"}, session)
-        shown = title(client, session)
+        client.send("Page.navigate", {"url": start_url + "go"}, session)
+        shown = window_title()
         check("a redirect to a listed host asks first",
               shown == "www.lrb.test" and not asked_for("phish2.lrb.test"), shown)
         keys(XK_Return)
 
-        client.call("Page.navigate", {"url": start_url + "download/evil.exe"}, session)
+        client.send("Page.navigate", {"url": start_url + "download/evil.exe"}, session)
         time.sleep(2)
         keys(XK_Return)
         time.sleep(1)
