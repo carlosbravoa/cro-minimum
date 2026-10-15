@@ -77,10 +77,9 @@ fixed budget. Targets: 2 GB x86-64 laptops (primary) and a 1 GB Raspberry Pi
     suggesting neither: smoothness hasn't been measured yet. Changeable in
     Settings. Unanswered (or without a display), software rendering.
 13. **Chromium release line:** Stable (what Linux distributions ship),
-    rebuilt for each security release; never main or canary.
-    `build/update_stable.sh` automates it, including a memory comparison
-    against the previous release. Chromium's Extended Stable has no Linux
-    releases.
+    rebuilt, tested and compared for memory against the previous release
+    for each security release; never main or canary. Chromium's Extended
+    Stable has no Linux releases.
 14. **Own copy of content_shell.** lrb started from content_shell; the parts
     it uses are copied into `//lrb` and trimmed of web tests, test hooks and
     other platforms. Only genuine Chromium changes live in `patches/`, which

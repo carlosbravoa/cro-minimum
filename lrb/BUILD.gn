@@ -350,8 +350,8 @@ test("lrb_unittests") {
   ]
 }
 
-# Everything build/build.sh builds: our browser and content_shell as the
-# measurement reference. The build is generated from this group alone
+# Everything build/build.sh builds: our browser, and content_shell for
+# comparisons. The build is generated from this group alone
 # (gn gen --root-pattern=//lrb:all): only the last --root-pattern counts.
 group("all") {
   testonly = true

@@ -110,7 +110,7 @@ index 0000000000..020b6e12e3
 +// Percent of a budget left below which moderate / critical pressure engages.
 +// 30/15 with a 250 ms poll kept 8 of 10 test sites alive under a 256 MB cap,
 +// against 6 with no evaluator and 7 with 20/10 at 1 s
-+// (low-ram-browser MEASUREMENTS.md).
++// (measured for low-ram-browser).
 +BASE_FEATURE_PARAM(int,
 +                   kModeratePercent,
 +                   &kLinuxMemoryPressureEvaluator,

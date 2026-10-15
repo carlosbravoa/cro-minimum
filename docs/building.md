@@ -27,19 +27,19 @@ Two build directories, same features (`build/args.gn`):
 | | `out/lrb-<cpu>` (official) | `out/dev-<cpu>` (dev) |
 |---|---|---|
 | Settings | `args.gn`: official, ThinLTO, PGO | + `args-dev.gn`: component build, DCHECKs, line-level symbols |
-| Use | Every memory measurement; packaged to `dist/` | Writing and debugging patches |
+| Use | Releases; packaged to `dist/` | Writing and debugging patches |
 | Rebuild after a small change | 10-30 min (whole-program link) | minutes |
 
-Never measure memory on the dev build: component builds and DCHECKs change
-the footprint (Wikipedia, single-process: 546 MB PSS, against 269 MB for the
-official build).
+The dev build's memory isn't the release's: component builds and DCHECKs
+double it (Wikipedia: 546 MB against 269 MB).
 
 `CHROMIUM_WORKDIR` overrides where the checkout lives (default `~/chromium`).
 
 `build/build.sh` builds `lrb`, `lrb_coordinator`, `lrb_picker`, `lrb_keyring` and
-`content_shell` (the measurement reference, built with lrb's patches) and
-writes `dist/lrb-<cpu>-<commit>.tar.zst`, the developer layout the tests
-and the harness use. `build/package_release.sh <version>` turns those into
+`content_shell` (Chromium's own shell with lrb's patches, for comparisons;
+not in the release packages) and writes `dist/lrb-<cpu>-<commit>.tar.zst`,
+a developer layout: unpack it and run `content-shell/lrb_coordinator`.
+`build/package_release.sh <version>` turns those into
 the user packages for a release (`dist/release-<version>/`): a
 `low-ram-browser` launcher, `install.sh` and `LICENSE` at the top, the
 browser in `lib/`, no `content_shell`, and `SHA256SUMS`. `<version>` must
@@ -47,25 +47,10 @@ be what `VERSION` said when the build was made: About shows it, with the
 source's commit and the Chromium release date from `CHROMIUM_RELEASE`.
 The build also writes `credits.html`, the licenses of every component in
 lrb's dependency graph (Chromium's `tools/licenses/licenses.py`, lrb's
-Rust crates included through their `README.chromium`). To measure it against Chromium's own
-snapshot, interleaved in one sweep (the `lrb-*` configs are the `cs-*` ones
-run on our build; see docs/measuring.md):
-
-```sh
-mkdir -p dist/x && tar -C dist/x --zstd -xf dist/lrb-x64-*.tar.zst
-cd phase0
-python3 -m lrb_harness run --binary lrb=../dist/x/content-shell/content_shell \
-    --configs cs-default,lrb-default,cs-single,lrb-single
-```
-
+Rust crates included through their `README.chromium`).
 
 ## Host gotchas
 
-- **Ubuntu 23.10+** restricts unprivileged user namespaces through
-  AppArmor, so sandboxed configs abort with "No usable sandbox!". Install
-  the profile for this repo's binaries (edit its path if the repo isn't at
-  `~/devel/low-ram-browser`):
-  `sudo cp phase0/apparmor/lrb-browsers /etc/apparmor.d/ && sudo apparmor_parser -r /etc/apparmor.d/lrb-browsers`
 - `install-build-deps.sh` was not needed on Ubuntu 26.04: the build uses
   Chromium's Debian sysroot.
 - `gn gen` must stay rooted at our targets (`--root-target=//lrb
@@ -92,22 +77,11 @@ lrb follows Chromium **Stable** (Extended Stable has no Linux releases). `CHROMI
    `build/apply_patches.sh` (our patches as commits on branch `lrb`; a
    conflict stops `git am`: resolve, `git am --continue`, then re-export
    with `git format-patch`).
-3. Re-check flag and feature names in `phase0/lrb_harness/configs.py` and
-   arg names in `build/args.gn`; they drift between milestones (GN warns
-   "Build argument has no effect" for a gone one).
-4. Build both CPUs (`build/build.sh x64`, `build/build.sh arm64`), run
-   `phase0/run_tests.sh`, and a memory sweep against the previous release:
-   a regression in memory is a failure like a failing test.
-
-`build/update_stable.sh` does steps 1, 2 and 4 (it checks the x64 build
-against the one it replaces and fails on a page whose runs are all over 5%
-dearer), leaving the result uncommitted with a summary in
-`results/raw/update-<version>/SUMMARY`. `build/systemd/lrb-update-stable.timer`
-runs it daily at 03:00 (install steps in the .service file).
-
-A security point release (same milestone, about weekly) is steps 1, 2 and
-4; the patches nearly always apply unchanged. A new milestone (every 4
-weeks) also needs step 3 and whatever API drift breaks in `//lrb`.
+3. Re-check arg names in `build/args.gn`; they drift between milestones
+   (GN warns "Build argument has no effect" for a gone one). A new
+   milestone (every 4 weeks) may also need API fixes in `//lrb`; a
+   security point release (about weekly) nearly always builds unchanged.
+4. Build both CPUs (`build/build.sh x64`, `build/build.sh arm64`).
 
 ## Licensing note
 

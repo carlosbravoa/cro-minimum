@@ -8,9 +8,9 @@
 #     dev: build/args.gn + build/args-dev.gn in out/dev-<cpu>, for writing
 #          patches; rebuilds in minutes, not packaged, never measured.
 #
-# Output of an official build: dist/lrb-<cpu>-<commit>.tar.zst, unpacks to a content-shell/ dir
-# laid out like the snapshot, so the Phase 0 harness can measure it with
-#   --binary content_shell=<dir>/content-shell/content_shell
+# Output of an official build: dist/lrb-<cpu>-<commit>.tar.zst, unpacks to a
+# content-shell/ dir laid out like Chromium's content_shell snapshots
+# (build/package_release.sh makes the user packages from it).
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

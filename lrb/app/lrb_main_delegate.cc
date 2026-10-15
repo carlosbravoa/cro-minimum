@@ -87,7 +87,7 @@ void AddSwitchUnlessSet(base::CommandLine& command_line, const char* name) {
 }
 
 // lrb's defaults where they differ from content_shell's: the configuration
-// measured leanest (results/phase1-*, instance-base-*), so a plain
+// measured leanest, so a plain
 // `lrb <url>` gets it. Each only when the command line doesn't say
 // otherwise.
 void ApplyDefaults(base::CommandLine& command_line) {
@@ -149,8 +149,8 @@ void ApplyDefaults(base::CommandLine& command_line) {
 // trial testing config, which non-Chrome-branded builds (and content_shell)
 // apply by default: the testing group of every experiment Chrome is trying,
 // features Stable doesn't ship. Without it lrb measured 1.4 MB less on a
-// blank page, 5 on Wikipedia, 17 on GitHub, 22 on CNN
-// (MEASUREMENTS.md). --enable-field-trial-config
+// blank page, 5 on Wikipedia, 17 on GitHub, 22 on CNN.
+// --enable-field-trial-config
 // applies it, for comparisons.
 void CreateFeatureList() {
   static base::NoDestructor<base::FieldTrialList> field_trial_list;

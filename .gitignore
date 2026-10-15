@@ -1,7 +1,3 @@
-# Downloaded snapshot binaries (re-fetch with phase0/fetch_prebuilt.sh)
-/prebuilt/
-# Raw run output (harness, update_stable.sh)
-/results/raw/
 __pycache__/
 *.pyc
 /.profiles/

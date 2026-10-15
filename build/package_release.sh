@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Makes the user packages for a release from build/build.sh's output
-# (dist/lrb-<cpu>-<commit>.tar.zst, the developer layout the tests and the
-# harness use): one launcher at the top, the browser in lib/, no
-# content_shell (the reference browser, only for measuring).
+# (dist/lrb-<cpu>-<commit>.tar.zst, the developer layout): one launcher at
+# the top, the browser in lib/, no content_shell (built for comparisons).
 #
 #   build/package_release.sh <version> [cpu ...]    # default: x64 arm64
 #

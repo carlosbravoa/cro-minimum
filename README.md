@@ -9,8 +9,7 @@ already hold.
 
 It is built on Chromium's `//content` layer, not the Chrome product, and
 follows Chromium's Stable releases. Every change is judged by measured
-memory, and keeping mainstream sites working is the hard constraint. The
-numbers and how to reproduce them are in [MEASUREMENTS.md](MEASUREMENTS.md).
+memory, and keeping mainstream sites working is the hard constraint.
 
 **Status: experimental.** It is usable day to day. Each site's process runs
 under whole-browser OS confinement (Landlock, seccomp) in place of
@@ -89,13 +88,12 @@ one page, medians of 3 runs, MB (Intel i7-8700, 15 GB, Ubuntu GNOME):
 Total PSS, including the program's own code. Counting only memory that
 can't be paged out, Chromium held 231-427 MB and lrb 74-121 MB. Chromium
 ran 10 processes per page (24 on BBC News); lrb ran 2, its coordinator
-(1 MB) and the site. To reproduce: `tools/compare_chromium.py`
-([MEASUREMENTS.md](MEASUREMENTS.md#against-chromium-as-installed)).
+(1 MB) and the site.
 
 ## On a Raspberry Pi 3 (1 GB)
 
 A Raspberry Pi 3 Model B+ (905 MB usable, 905 MB zram, Debian 13 64-bit)
-running the arm64 alpha with `tools/device_test.sh`. Memory that can't be
+running the arm64 alpha. Memory that can't be
 paged out (anonymous + shared), MB, one site at a time without content
 blocking:
 
@@ -123,8 +121,7 @@ Memory pressure began at the third site; the coordinator put the least
 recently used windows to sleep, so five open sites cost about what three
 did. Every site loaded, nothing crashed, and the kernel killed nothing.
 Not measured yet: load times and how smooth scrolling and video are with
-and without the GPU. More numbers, and how to reproduce them:
-[MEASUREMENTS.md](MEASUREMENTS.md).
+and without the GPU.
 
 ## Safety and privacy defaults
 
@@ -246,20 +243,16 @@ tar --zstd -xf dist/lrb-x64-*.tar.zst
 content-shell/lrb_coordinator https://en.wikipedia.org
 ```
 
-Tests: `phase0/run_tests.sh` (some open windows on `$DISPLAY`, some need
-network access).
-
 ## Layout
 
 | Path | What |
 |---|---|
 | `lrb/` | The browser: a `//content` embedder (`//lrb` in the Chromium checkout), its coordinator and content blocking. |
 | `patches/` | The only changes to Chromium itself, as `git am` patches against `CHROMIUM_COMMIT`. |
-| `build/` | Checkout, patch, build, package, and follow Stable (`update_stable.sh`). |
-| `phase0/` | Memory harness (Python standard library only, runs on target devices) and the test suite. |
-| `CHROMIUM_COMMIT` | The Chromium Stable release lrb builds on. |
-| `CHROMIUM_REVISION` | The Chromium snapshot used as a measurement reference (`phase0/fetch_prebuilt.sh`). |
-| `docs/` | Design, building, measuring. |
+| `build/` | Checkout, patch, build, package a release. |
+| `CHROMIUM_COMMIT`, `CHROMIUM_RELEASE` | The Chromium Stable release lrb builds on: its commit, version and release day. |
+| `VERSION` | lrb's version, shown in About. |
+| `docs/` | Design and security model, building. |
 
 ## License
 
