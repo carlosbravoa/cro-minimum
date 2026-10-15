@@ -1,0 +1,69 @@
+From 285e49abea826ede950029e487b9b00f7c857c79 Mon Sep 17 00:00:00 2001
+From: Carlos Bravo <cbravoa@gmail.com>
+Date: Thu, 15 Oct 2026 13:39:32 -0300
+Subject: [PATCH] content: discardable memory allocator in single-process mode
+
+In single-process mode the browser main loop didn't install
+DiscardableSharedMemoryManager as the process's
+base::DiscardableMemoryAllocator, leaving it to the in-process renderer
+when it starts (crbug.com/503724). The browser's own UI can raster
+before that: on a Wayland desktop drawing client-side decorations, a
+window frame's blurred shadow asks Skia's resource cache for
+discardable memory and dereferences the null allocator
+(SkDiscardableMemory::Create, CompositorTileWorker).
+
+The browser now installs it unless one is set already (unit tests,
+in-process Android WebView), and the renderer installs its client
+manager only when none is set.
+---
+ content/browser/browser_main_loop.cc   | 11 ++++++-----
+ content/renderer/render_thread_impl.cc | 11 ++++++-----
+ 2 files changed, 12 insertions(+), 10 deletions(-)
+
+diff --git a/content/browser/browser_main_loop.cc b/content/browser/browser_main_loop.cc
+index 0559ec1a959fd..1b358fadca895 100644
+--- a/content/browser/browser_main_loop.cc
++++ b/content/browser/browser_main_loop.cc
+@@ -717,11 +717,12 @@ void BrowserMainLoop::PostCreateMainMessageLoop() {
+ 
+   { base::SetRecordActionTaskRunner(GetUIThreadTaskRunner({})); }
+ 
+-  // TODO(boliu): kSingleProcess check is a temporary workaround for
+-  // in-process Android WebView. crbug.com/503724 tracks proper fix.
+-  // Also check to see if a discardable memory manager was set (e.g. unit tests)
+-  if (!parsed_command_line_->HasSwitch(switches::kSingleProcess) &&
+-      !base::DiscardableMemoryAllocator::HasInstance()) {
++  // Also in single-process mode: the browser's own UI can raster (e.g. a
++  // window frame's blurred shadow on Wayland) before the in-process
++  // renderer starts, which then uses this one (crbug.com/503724).
++  // Check to see if a discardable memory manager was set (e.g. unit tests,
++  // in-process Android WebView).
++  if (!base::DiscardableMemoryAllocator::HasInstance()) {
+     base::DiscardableMemoryAllocator::SetInstance(
+         discardable_memory::DiscardableSharedMemoryManager::Get());
+   }
+diff --git a/content/renderer/render_thread_impl.cc b/content/renderer/render_thread_impl.cc
+index f5d1a55e2a255..c77c6bf673f02 100644
+--- a/content/renderer/render_thread_impl.cc
++++ b/content/renderer/render_thread_impl.cc
+@@ -622,11 +622,12 @@ void RenderThreadImpl::Init() {
+       discardable_memory::ClientDiscardableSharedMemoryManager>(
+       std::move(manager_remote), GetIOTaskRunner());
+ 
+-  // TODO(boliu): In single process, browser main loop should set up the
+-  // discardable memory manager, and should skip this if kSingleProcess.
+-  // See crbug.com/503724.
+-  base::DiscardableMemoryAllocator::SetInstance(
+-      discardable_memory_allocator_.get());
++  // In single process, the browser main loop has set up the discardable
++  // memory manager already (crbug.com/503724).
++  if (!base::DiscardableMemoryAllocator::HasInstance()) {
++    base::DiscardableMemoryAllocator::SetInstance(
++        discardable_memory_allocator_.get());
++  }
+ 
+ #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+   ChildProcess::current()->SetIOThreadType(base::ThreadType::kPresentation);
+-- 
+2.53.0
+
