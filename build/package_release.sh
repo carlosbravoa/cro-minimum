@@ -28,18 +28,22 @@ for cpu in "${cpus[@]}"; do
   [[ -f $build ]] || { echo "no build for $cpu: $build (build/build.sh $cpu)" >&2; exit 1; }
   stage="$(mktemp -d)"
   tar -C "$stage" --zstd -xf "$build"
+  built="$(sed -n 's/^lrb_version = "\(.*\)"$/\1/p' "$stage/content-shell/args.gn")"
+  [[ $built == "$version" ]] || {
+    echo "$cpu: the build says version '$built' (VERSION when built), not $version" >&2; exit 1; }
   pkg="$stage/$name"
   mkdir -p "$pkg/lib"
   for f in lrb lrb_coordinator lrb_picker lrb_keyring lrb.pak icudtl.dat v8_context_snapshot.bin \
            snapshot_blob.bin libEGL.so libGLESv2.so libvk_swiftshader.so \
-           vk_swiftshader_icd.json CHROMIUM COMMIT args.gn; do
+           vk_swiftshader_icd.json credits.html CHROMIUM COMMIT args.gn; do
     [[ -e $stage/content-shell/$f ]] && mv "$stage/content-shell/$f" "$pkg/lib/"
   done
-  for f in lrb lrb_coordinator lrb_picker lrb_keyring lrb.pak; do
+  for f in lrb lrb_coordinator lrb_picker lrb_keyring lrb.pak credits.html; do
     [[ -e $pkg/lib/$f ]] || { echo "$cpu: $f missing from $build" >&2; exit 1; }
   done
   [[ -d $stage/content-shell/resources ]] && mv "$stage/content-shell/resources" "$pkg/lib/"
   install -m 755 "$root/build/release/low-ram-browser" "$root/build/release/install.sh" "$pkg/"
+  install -m 644 "$root/LICENSE" "$pkg/"
   chromium="$(cut -d' ' -f1 "$pkg/lib/CHROMIUM")"
   sed -e "s/@VERSION@/$version/" -e "s/@CHROMIUM@/$chromium/" -e "s/@CPU@/$cpu/" \
     "$root/build/release/README.txt" > "$pkg/README.txt"

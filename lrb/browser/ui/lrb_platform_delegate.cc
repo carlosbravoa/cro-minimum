@@ -378,6 +378,16 @@ bool LrbPlatformDelegate::AddBackgroundTab(Shell* opener,
 }
 
 // static
+bool LrbPlatformDelegate::OpenTab(Shell* opener, const GURL& url) {
+  if (!AddBackgroundTab(opener, url)) {
+    return false;
+  }
+  Window* window = g_delegate->WindowOf(opener);
+  g_delegate->Activate(window, *g_delegate->TabOf(window, opener) + 1);
+  return true;
+}
+
+// static
 void LrbPlatformDelegate::CloseAllByUser() {
   if (!g_delegate) {
     return;

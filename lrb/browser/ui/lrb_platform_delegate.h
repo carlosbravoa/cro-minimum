@@ -110,6 +110,10 @@ class LrbPlatformDelegate : public views::WidgetObserver {
   // link opened in the background). False if `opener` has no window.
   static bool AddBackgroundTab(Shell* opener, const GURL& url);
 
+  // A tab with `url` after `opener`'s, shown. False if `opener` has no
+  // window.
+  static bool OpenTab(Shell* opener, const GURL& url);
+
   // Closes every window (the menu's "Close all pages of this site"): tabs
   // not loaded go at once, each page may ask "leave this page?".
   static void CloseAllByUser();

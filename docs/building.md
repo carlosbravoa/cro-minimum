@@ -41,8 +41,13 @@ official build).
 writes `dist/lrb-<cpu>-<commit>.tar.zst`, the developer layout the tests
 and the harness use. `build/package_release.sh <version>` turns those into
 the user packages for a release (`dist/release-<version>/`): a
-`low-ram-browser` launcher and `install.sh` at the top, the browser in
-`lib/`, no `content_shell`, and `SHA256SUMS`. To measure it against Chromium's own
+`low-ram-browser` launcher, `install.sh` and `LICENSE` at the top, the
+browser in `lib/`, no `content_shell`, and `SHA256SUMS`. `<version>` must
+be what `VERSION` said when the build was made: About shows it, with the
+source's commit and the Chromium release date from `CHROMIUM_RELEASE`.
+The build also writes `credits.html`, the licenses of every component in
+lrb's dependency graph (Chromium's `tools/licenses/licenses.py`, lrb's
+Rust crates included through their `README.chromium`). To measure it against Chromium's own
 snapshot, interleaved in one sweep (the `lrb-*` configs are the `cs-*` ones
 run on our build; see docs/measuring.md):
 
@@ -80,7 +85,9 @@ lrb follows Chromium **Stable** (Extended Stable has no Linux releases). `CHROMI
 
 1. The current Stable release and its commit:
    `https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1`
-   (`version`, `hashes.chromium`). Write the hash to `CHROMIUM_COMMIT`.
+   (`version`, `hashes.chromium`, `time`). Write the hash to
+   `CHROMIUM_COMMIT`, and the version and the release's day to
+   `CHROMIUM_RELEASE` (`155.0.8059.39 2026-10-06`).
 2. `build/setup_checkout.sh` (gclient sync to it), then
    `build/apply_patches.sh` (our patches as commits on branch `lrb`; a
    conflict stops `git am`: resolve, `git am --continue`, then re-export

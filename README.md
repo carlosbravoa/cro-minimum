@@ -201,6 +201,10 @@ and without the GPU. More numbers, and how to reproduce them:
   what to open on start, and how much content blocking (full lists,
   lighter ones for less memory, or off; the menu also turns it off for
   one site).
+- **About lrb** (in the menu): the version and the source it was built
+  from, the Chromium version under it and the day Chromium released it
+  (to compare with Chromium's latest release), a link to this repository,
+  and the licenses of every component.
 
 ## What it leaves out
 

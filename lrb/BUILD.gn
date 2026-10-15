@@ -18,6 +18,28 @@ import("//testing/test.gni")
 
 assert(is_linux, "low-ram-browser targets Linux only")
 
+declare_args() {
+  # Set by build/build.sh: the release this source will be (VERSION), the
+  # source's commit, and the day Chromium released CHROMIUM_COMMIT to Stable
+  # (CHROMIUM_RELEASE). Shown in About (common/version.h).
+  lrb_version = ""
+  lrb_source = ""
+  lrb_chromium_released = ""
+}
+
+# Its own target: a new commit recompiles one file, not the browser.
+source_set("version") {
+  sources = [
+    "common/version.cc",
+    "common/version.h",
+  ]
+  defines = [
+    "LRB_VERSION=\"$lrb_version\"",
+    "LRB_SOURCE=\"$lrb_source\"",
+    "LRB_CHROMIUM_RELEASED=\"$lrb_chromium_released\"",
+  ]
+}
+
 executable("lrb") {
   sources = [
     "app/lrb_main.cc",
@@ -79,6 +101,8 @@ executable("lrb") {
     "browser/ssl_host_state.h",
     "browser/zoom_levels.cc",
     "browser/zoom_levels.h",
+    "browser/ui/about_dialog.cc",
+    "browser/ui/about_dialog.h",
     "browser/ui/context_menu.cc",
     "browser/ui/context_menu.h",
     "browser/ui/file_picker.cc",
@@ -133,6 +157,7 @@ executable("lrb") {
     "//components/variations/service:buildflags",
     "//components/vector_icons",
     "//components/version_info",
+    ":version",
     "//content/public/app",
     "//content/public/browser",
     "//content/public/child",

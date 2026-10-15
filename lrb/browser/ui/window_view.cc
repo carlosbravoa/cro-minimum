@@ -36,6 +36,7 @@
 #include "lrb/browser/permissions/site_permissions.h"
 #include "lrb/browser/print.h"
 #include "lrb/browser/site.h"
+#include "lrb/browser/ui/about_dialog.h"
 #include "lrb/browser/ui/lrb_platform_delegate.h"
 #include "lrb/browser/ui/settings_dialog.h"
 #include "lrb/browser/ui/suggestions_popup.h"
@@ -1357,6 +1358,7 @@ void WindowView::ShowMenuWith(std::vector<Suggestion> bookmarks) {
   }
   menu_model_.AddSeparator(ui::NORMAL_SEPARATOR);
   menu_model_.AddItem(kSettings, u"Settings...");
+  menu_model_.AddItem(kAbout, u"About lrb");
   menu_model_.AddSeparator(ui::NORMAL_SEPARATOR);
   menu_model_.AddItem(kCloseSite, u"Close all pages of this site");
 
@@ -1530,6 +1532,16 @@ void WindowView::ExecuteCommand(int command_id, int event_flags) {
       } else {
         ShowSettings(weak_factory_.GetWeakPtr());
       }
+      break;
+    case kAbout:
+      ShowAbout(weak_factory_.GetWeakPtr(),
+                base::BindRepeating(
+                    [](base::WeakPtr<WindowView> view, const GURL& url) {
+                      if (view && view->shell_) {
+                        LrbPlatformDelegate::OpenTab(view->shell_, url);
+                      }
+                    },
+                    weak_factory_.GetWeakPtr()));
       break;
     case kDismissDownload:
       download_status_.reset();

@@ -19,10 +19,11 @@ current="$(cat CHROMIUM_COMMIT)"
 
 release="$(curl -sSf 'https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1')" || {
   echo "can't reach chromiumdash" >&2; exit 2; }
-read -r version commit < <(python3 -c '
-import json, sys
+read -r version commit released < <(python3 -c '
+import datetime, json, sys
 r = json.loads(sys.argv[1])[0]
-print(r["version"], r["hashes"]["chromium"])' "$release")
+day = datetime.datetime.fromtimestamp(r["time"] / 1000, datetime.timezone.utc).date()
+print(r["version"], r["hashes"]["chromium"], day.isoformat())' "$release")
 if [[ $commit == "$current" && $force != --force ]]; then
   echo "up to date: $version ($commit)"
   exit 0
@@ -41,6 +42,7 @@ rm -rf dist/x64-prev
 [[ -d dist/x64 ]] && cp -a dist/x64 dist/x64-prev
 
 echo "$commit" > CHROMIUM_COMMIT
+echo "$version $released" > CHROMIUM_RELEASE  # the day About shows
 for attempt in 1 2 3; do
   JOBS=4 build/setup_checkout.sh > "$out/sync.log" 2>&1 && break
   [[ $attempt == 3 ]] && fail "gclient sync (see sync.log)"
@@ -96,4 +98,4 @@ fi
 
 build/build.sh arm64 > "$out/build-arm64.log" 2>&1 || fail "arm64 build"
 note "arm64 builds"
-note "PASSED: review, then commit CHROMIUM_COMMIT (and patches/ if re-exported)"
+note "PASSED: review, then commit CHROMIUM_COMMIT and CHROMIUM_RELEASE (and patches/ if re-exported)"
